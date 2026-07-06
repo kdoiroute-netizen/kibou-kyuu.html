@@ -55,6 +55,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* RULES */
 .rule-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
+@media (max-width:900px){
+  .rule-grid{grid-template-columns:repeat(4,1fr)}
+}
+@media (max-width:600px){
+  .rule-grid{grid-template-columns:repeat(2,1fr)}
+  .main{padding:12px}
+  .card{padding:14px}
+  .header{padding:0 10px;gap:6px}
+  .header-tabs{gap:0}
+  .htab{padding:5px 8px;font-size:11px}
+  .sync-status{display:none}
+}
 .rule-day-card{background:var(--bg);border-radius:10px;padding:12px;border:1.5px solid var(--border)}
 .rule-day-card.sat{border-color:#bfdbfe}.rule-day-card.sun{border-color:#fecaca}
 .rule-day-title{font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;padding:3px;border-radius:5px}
@@ -76,21 +88,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .save-btn:hover{background:#15803d}
 
 .shift-wrap{overflow-x:auto;border-radius:12px;box-shadow:var(--shadow);overflow-y:visible}
-.shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px}
-.shift-table th{padding:8px 6px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy)}
+.shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px;table-layout:fixed}
+.shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
 .shift-table th:first-child{text-align:left;padding-left:12px;width:130px}
 .shift-table th.sat-h{background:#3b82f6}.shift-table th.sun-h{background:#ef4444}.shift-table th.today-h{background:var(--teal)}
 .th-date{font-size:14px;font-weight:800;line-height:1}.th-day{font-size:10px;opacity:.7;margin-top:2px}
-.shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px;vertical-align:middle;height:56px}.shift-table tr{height:56px}
-.shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);min-width:110px}
+.shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px 2px;vertical-align:middle;height:56px;width:34px}.shift-table tr{height:56px}
+.shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px}
 .shift-table tr:hover td{background:#fafbfd}
 .shift-table td.sat-col{background:#f0f4ff}.shift-table td.sun-col{background:#fff5f5}
 .shift-table td.today-col{background:#f0fafb}.shift-table td.off-col{background:#f8f9fa}
 .shift-cell-btn{width:100%;height:34px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:.1s;font-family:inherit}
 .shift-cell-btn:hover{filter:brightness(.92)}
-.shift-off{background:transparent;color:var(--gray2);font-size:13px}
-.shift-work{color:#fff}
-.shift-s1{background:#0891b2}.shift-s2{background:#7c3aed}.shift-s3{background:#d97706}.shift-s4{background:#16a34a}
+.shift-off{background:#f1f5f9;color:var(--gray);font-size:12px;font-weight:700}
+.shift-work{color:#fff;background:#0891b2;font-size:13px;font-weight:700}
 .viol-panel{background:var(--red-light);border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-bottom:16px}
 .viol-panel h4{font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px}
 .viol-panel ul{list-style:none;display:flex;flex-direction:column;gap:4px}
@@ -170,10 +181,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="save-btn" onclick="saveShiftToSheet()">💾 保存</button>
     </div>
     <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div>常勤</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div>時短(〜16時)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#d97706"></div>時短(〜17時)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#16a34a"></div>平日休み勤務</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div>出勤</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;border:1px solid var(--border)"></div>休み</div>
     </div>
     <div id="viol-panel"></div>
     <div class="shift-wrap"><table class="shift-table" id="shift-table"></table></div>
@@ -265,15 +274,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
 const DAYS = ['日','月','火','水','木','金','土'];
 const TYPE_MAP = {
-  full:    {label:'常勤',    cls:'shift-s1',time:'9:00〜18:00'},
-  short16: {label:'時短(〜16)',cls:'shift-s2',time:'9:00〜16:00'},
-  short17: {label:'時短(〜17)',cls:'shift-s3',time:'9:00〜17:00'},
-  weekday: {label:'出勤', cls:'shift-s4',time:'9:00〜18:00'},
+  full:    {label:'常勤',time:'9:00〜18:00'},
+  short16: {label:'時短(〜16)',time:'9:00〜16:00'},
+  short17: {label:'時短(〜17)',time:'9:00〜17:00'},
+  weekday: {label:'平日休み出勤',time:'9:00〜18:00'},
 };
+// シフト表・シフト編集モーダルでの表示は勤務形態によらず「出勤」で統一
+const SHIFT_WORK_LABEL = '出勤';
 const COLORS=['#0891b2','#7c3aed','#d97706','#16a34a','#e85555','#c65b8a','#4a90d9','#5e8a45','#8a5b45','#456b8a','#8a456b','#6b8a45','#456b6b','#8a6b45','#4a5ea7','#a75e4a','#5ea74a','#a74a5e','#5e4aa7','#a7855e'];
 
 let staff = [];
-let rules = {0:{minF:1,minM:1,required:[]},1:{minF:2,minM:1,required:[]},2:{minF:2,minM:1,required:[]},3:{minF:2,minM:1,required:[]},4:{minF:2,minM:1,required:[]},5:{minF:2,minM:1,required:[]},6:{minF:1,minM:1,required:[]}};
+let rules = {0:{minF:1,minM:1,minTotal:0,required:[]},1:{minF:2,minM:1,minTotal:0,required:[]},2:{minF:2,minM:1,minTotal:0,required:[]},3:{minF:2,minM:1,minTotal:0,required:[]},4:{minF:2,minM:1,minTotal:0,required:[]},5:{minF:2,minM:1,minTotal:0,required:[]},6:{minF:1,minM:1,minTotal:0,required:[]}};
 let shifts = {};
 let monthOffset = 0;
 let editingStaffId = null;
@@ -322,7 +333,7 @@ async function loadAll(){
       }));
     }
     if(rulesRes.rules && rulesRes.rules.length > 0){
-      rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,required:r.required||[]}; });
+      rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,minTotal:r.minTotal||0,required:r.required||[]}; });
     }
     if(shiftsRes.shifts && shiftsRes.shifts.length > 0){
       shiftsRes.shifts.forEach(s => { setShift(Number(s.year),Number(s.month),Number(s.staffId),Number(s.day),s.value); });
@@ -408,9 +419,9 @@ function renderShift(){
       if(!canWork) colCls+=' off-col';
       if(val==='work'){
         const t=TYPE_MAP[s.type];
-        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-work ${t.cls}" onclick="openShiftModal(${s.id},${d})" title="${t.time}">${t.label}</button></td>`;
+        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-work" onclick="openShiftModal(${s.id},${d})" title="${t.time}">${SHIFT_WORK_LABEL}</button></td>`;
       } else {
-        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-off" onclick="openShiftModal(${s.id},${d})">―</button></td>`;
+        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-off" onclick="openShiftModal(${s.id},${d})">休み</button></td>`;
       }
     });
     row+='</tr>'; body+=row;
@@ -428,6 +439,7 @@ function renderShift(){
     if(hasWork){
       if(wF<r.minF) violations.push(`${m+1}/${d}（${DAYS[dow]}）：女性${r.minF}名必要（現在${wF}名）`);
       if(wM<r.minM) violations.push(`${m+1}/${d}（${DAYS[dow]}）：男性${r.minM}名必要（現在${wM}名）`);
+      if(r.minTotal && (wF+wM)<r.minTotal) violations.push(`${m+1}/${d}（${DAYS[dow]}）：合計${r.minTotal}名必要（現在${wF+wM}名）`);
       r.required.forEach(rid=>{
         if(getShift(y,m,rid,d)!=='work'){
           const sm=staff.find(x=>x.id===rid);
@@ -435,7 +447,7 @@ function renderShift(){
         }
       });
     }
-    const total=wF+wM; const ok=(wF>=r.minF&&wM>=r.minM);
+    const total=wF+wM; const ok=(wF>=r.minF&&wM>=r.minM&&total>=(r.minTotal||0));
     const isTod=isThisMonth&&d===todayD.getDate();
     const bg=isTod?'rgba(8,145,178,.4)':dow===6?'rgba(59,130,246,.3)':dow===0?'rgba(239,68,68,.3)':'rgba(255,255,255,.05)';
     sumRow+=`<td style="background:${bg};text-align:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.08)"><div style="font-size:14px;font-weight:800;color:${total===0?'rgba(255,255,255,.3)':ok?'#86efac':'#fca5a5'}">${total||'―'}</div><div style="font-size:9px;color:rgba(255,255,255,.5)">女${wF} 男${wM}</div></td>`;
@@ -521,6 +533,16 @@ async function generateShift(){
       pool.sort(()=>Math.random()-.5);
       for(let i=0;i<pool.length&&wM<r.minM;i++){ setShift(y,m,pool[i].id,d,'work'); wM++; }
     }
+
+    // 合計最低人数を満たすまで補填（性別不問）
+    if(r.minTotal){
+      let total=staff.filter(s=>getShift(y,m,s.id,d)==='work').length;
+      if(total<r.minTotal){
+        const pool=staff.filter(s=>s.type==='weekday'&&getShift(y,m,s.id,d)!=='work'&&!(kibouMap[s.id]||[]).includes(d));
+        pool.sort(()=>Math.random()-.5);
+        for(let i=0;i<pool.length&&total<r.minTotal;i++){ setShift(y,m,pool[i].id,d,'work'); total++; }
+      }
+    }
   }
 
   renderShift();
@@ -538,7 +560,7 @@ function openShiftModal(sid,d){
   document.getElementById('shift-modal-sub').textContent=`${m+1}月${d}日（${DAYS[dow]}）`;
   const t=TYPE_MAP[s.type];
   document.getElementById('shift-choices').innerHTML=`
-    <button class="shift-choice-btn" onclick="selectShift('work',this)" style="${selectedShiftValue==='work'?`background:${getTypeColor(s.type)};color:#fff;border-color:transparent`:''}">
+    <button class="shift-choice-btn" onclick="selectShift('work',this)" style="${selectedShiftValue==='work'?'background:#0891b2;color:#fff;border-color:transparent':''}">
       ✅ 出勤<br><span style="font-size:10px;opacity:.8">${t.time}</span>
     </button>
     <button class="shift-choice-btn" onclick="selectShift('off',this)" style="${selectedShiftValue==='off'?'background:var(--gray);color:#fff;border-color:transparent':''}">
@@ -549,7 +571,7 @@ function openShiftModal(sid,d){
 function selectShift(val,btn){
   selectedShiftValue=val;
   document.querySelectorAll('.shift-choice-btn').forEach(b=>{ b.style.background='';b.style.color='';b.style.borderColor=''; });
-  if(val==='work'){ const s=staff.find(x=>x.id===editingShift.sid); btn.style.background=getTypeColor(s.type);btn.style.color='#fff';btn.style.borderColor='transparent'; }
+  if(val==='work'){ btn.style.background='#0891b2';btn.style.color='#fff';btn.style.borderColor='transparent'; }
   else { btn.style.background='var(--gray)';btn.style.color='#fff';btn.style.borderColor='transparent'; }
 }
 function saveShiftEdit(){ if(!editingShift) return; setShift(editingShift.y,editingShift.m,editingShift.sid,editingShift.d,selectedShiftValue); closeShiftModal(); renderShift(); }
@@ -615,6 +637,7 @@ function renderRules(){
       <div class="rule-day-title${isSat?' sat':isSun?' sun':''}">${dn}曜日</div>
       <div class="rule-label">女性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minF}" id="rule-f-${dow}">
       <div class="rule-label">男性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minM}" id="rule-m-${dow}">
+      <div class="rule-label">合計 最低人数</div><input class="rule-input" type="number" min="0" max="20" value="${r.minTotal||0}" id="rule-t-${dow}">
       <div class="rule-label">必須スタッフ</div>
       <select class="required-staff-select" id="rule-req-${dow}" multiple size="3">${reqOpts}</select>
     </div>`;
@@ -624,9 +647,10 @@ async function saveRules(){
   DAYS.forEach((_,dow)=>{
     const minF=parseInt(document.getElementById(`rule-f-${dow}`)?.value||0);
     const minM=parseInt(document.getElementById(`rule-m-${dow}`)?.value||0);
+    const minTotal=parseInt(document.getElementById(`rule-t-${dow}`)?.value||0);
     const sel=document.getElementById(`rule-req-${dow}`);
     const required=sel?Array.from(sel.selectedOptions).map(o=>parseInt(o.value)):[];
-    rules[dow]={minF,minM,required};
+    rules[dow]={minF,minM,minTotal,required};
   });
   setSyncStatus('saving','保存中…');
   try {
@@ -638,40 +662,50 @@ async function saveRules(){
 }
 
 // KIBOU
+// ※月の絞り込みはせず、届いている希望休を全件（月・日付順）で表示する。
+//   これまでは「現在シフト表で開いている月」に一致するものしか表示されず、
+//   別の月の希望休が見えない不具合があったため修正。
 async function loadKibou(){
   document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px">読み込み中…</div>';
   try {
     const res=await gasGet('loadKibou');
     const list=res.kibou||[];
     if(list.length===0){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px;padding:12px 0">希望休の申請はまだありません</div>'; return; }
-    const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
-    const monthStr=`${y}年${m+1}月`;
-    const filtered=list.filter(k=>k.month===monthStr).reverse();
-    if(filtered.length===0){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px;padding:12px 0">今月の申請はありません</div>'; return; }
-    document.getElementById('kibou-list').innerHTML=filtered.map((k,i)=>{
+    // 日付が新しい月＆最近届いた順に並べ替え
+    const sorted=[...list].sort((a,b)=>{
+      const da=(a.dates&&a.dates[0])||'', db=(b.dates&&b.dates[0])||'';
+      return db.localeCompare(da);
+    });
+    document.getElementById('kibou-list').innerHTML=sorted.map((k,i)=>{
       const dates=k.dates.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
       const datesJson=JSON.stringify(k.dates);
       const nameJson=JSON.stringify(k.name);
       return `<div class="kibou-item">
-        <div style="flex:1"><strong>${k.name}</strong>　希望休：<span style="color:var(--red);font-weight:700">${dates}</span>${k.memo?'　備考：'+k.memo:''}</div>
+        <div style="flex:1"><span style="color:var(--gray);font-size:11px">${k.month||''}</span><br><strong>${k.name}</strong>　希望休：<span style="color:var(--red);font-weight:700">${dates}</span>${k.memo?'　備考：'+k.memo:''}</div>
         <button class="kibou-apply-btn" onclick="applyKibou(${nameJson},${datesJson})">シフトに反映</button>
       </div>`;
     }).join('');
   } catch(e){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--red);font-size:13px">読み込みに失敗しました</div>'; }
 }
 
+// ※以前は「現在シフト表で開いている月」と一致する日付しか反映されなかったため、
+//   希望した月とシフト表の表示月がズレていると反映漏れが起きていた。
+//   日付そのものが持つ年月に反映し、該当月のシフト表へ自動的に移動するよう修正。
 function applyKibou(name, dates){
-  const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
   const s=staff.find(x=>x.name===name);
   if(!s){ showToast(`❌ 「${name}」がスタッフ一覧にいません`); return; }
+  if(!dates || dates.length===0) return;
   dates.forEach(ds=>{
     const dt=new Date(ds);
-    if(dt.getFullYear()===y && dt.getMonth()===m){
-      setShift(y,m,s.id,dt.getDate(),'off');
-    }
+    setShift(dt.getFullYear(),dt.getMonth(),s.id,dt.getDate(),'off');
   });
+  // 反映した希望休の月にシフト表の表示を合わせる
+  const target=new Date(dates[0]);
+  const base=new Date(); base.setDate(1);
+  monthOffset=(target.getFullYear()-base.getFullYear())*12+(target.getMonth()-base.getMonth());
+  document.querySelector('.htab').click();
   renderShift();
-  showToast(`✅ ${name}の希望休をシフトに反映しました`);
+  showToast(`✅ ${name}の希望休をシフトに反映しました（${target.getMonth()+1}月）`);
 }
 
 // TOAST
