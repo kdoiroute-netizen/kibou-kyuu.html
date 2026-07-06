@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>希望休申請</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--teal:#0891b2;--navy:#1c2b4a;--green:#16a34a;--red:#dc2626;--gray:#6b7280;--border:#e2e8f0;--bg:#f4f6fb}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--navy);min-height:100vh}
+.header{background:var(--navy);color:#fff;padding:16px 20px;text-align:center}
+.header h1{font-size:18px;font-weight:800}
+.header p{font-size:12px;opacity:.6;margin-top:4px}
+.main{max-width:500px;margin:0 auto;padding:20px}
+.card{background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.08);margin-bottom:16px}
+.label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block}
+.select{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;outline:none;background:#fff;color:var(--navy)}
+.select:focus{border-color:var(--teal)}
+.cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
+.cal-day-label{text-align:center;font-size:11px;font-weight:700;color:var(--gray);padding:4px 0}
+.cal-day-label.sun{color:#ef4444}.cal-day-label.sat{color:#3b82f6}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;color:var(--navy)}
+.cal-cell:hover{border-color:var(--teal);background:#e0f2f7}
+.cal-cell.selected{background:var(--red);border-color:var(--red);color:#fff}
+.cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-cell.sun{color:#ef4444}.cal-cell.sat{color:#3b82f6}
+.cal-cell.selected.sun,.cal-cell.selected.sat{color:#fff}
+.selected-list{font-size:13px;color:var(--gray);margin-top:10px;min-height:20px}
+.selected-list span{color:var(--red);font-weight:700}
+.submit-btn{width:100%;padding:14px;border-radius:10px;background:var(--teal);color:#fff;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
+.submit-btn:hover{background:#0e7490}
+.submit-btn:disabled{background:var(--gray);cursor:not-allowed}
+.success{text-align:center;padding:40px 20px;display:none}
+.success .icon{font-size:60px;margin-bottom:16px}
+.success h2{font-size:20px;font-weight:800;margin-bottom:8px}
+.success p{font-size:14px;color:var(--gray)}
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.month-nav h3{font-size:15px;font-weight:700}
+.mnav-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:14px}
+.loading-msg{text-align:center;color:var(--gray);font-size:13px;padding:8px 0;display:flex;align-items:center;gap:6px}
+.spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>📅 希望休申請</h1>
+  <p>希望する休日をカレンダーで選んで送信してください</p>
+</div>
+<div class="main">
+  <div id="form-area">
+    <div class="card">
+      <label class="label">あなたの名前</label>
+      <div class="loading-msg" id="staff-loading"><div class="spinner"></div>スタッフ情報を読み込み中…</div>
+      <select class="select" id="staff-select" style="display:none">
+        <option value="">-- 選択してください --</option>
+      </select>
+    </div>
+    <div class="card">
+      <div class="month-nav">
+        <button class="mnav-btn" onclick="changeMonth(-1)">‹</button>
+        <h3 id="cal-title"></h3>
+        <button class="mnav-btn" onclick="changeMonth(1)">›</button>
+      </div>
+      <div class="cal-header">
+        <div class="cal-day-label sun">日</div>
+        <div class="cal-day-label">月</div>
+        <div class="cal-day-label">火</div>
+        <div class="cal-day-label">水</div>
+        <div class="cal-day-label">木</div>
+        <div class="cal-day-label">金</div>
+        <div class="cal-day-label sat">土</div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+      <div class="selected-list" id="selected-list">希望休を選んでください</div>
+    </div>
+    <div class="card">
+      <label class="label">備考（任意）</label>
+      <textarea class="select" id="memo" rows="3" placeholder="理由など（任意）" style="resize:none"></textarea>
+    </div>
+    <button class="submit-btn" id="submit-btn" onclick="submitRequest()">送信する</button>
+  </div>
+  <div class="success" id="success-area">
+    <div class="icon">✅</div>
+    <h2>送信完了！</h2>
+    <p>希望休の申請を受け付けました。<br>管理者が確認してシフトに反映します。</p>
+  </div>
+</div>
+<script>
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
+
+let selectedDates = [];
+let calYear, calMonth;
+
+async function loadStaff(){
+  try {
+    const res = await fetch(`${GAS_URL}?action=loadStaff`);
+    const data = await res.json();
+    const sel = document.getElementById('staff-select');
+    sel.innerHTML = '<option value="">-- 選択してください --</option>';
+    if(data.staff && data.staff.length > 0){
+      data.staff.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.name; o.textContent = s.name;
+        sel.appendChild(o);
+      });
+    } else {
+      sel.innerHTML = '<option value="">スタッフが登録されていません</option>';
+    }
+  } catch(e){
+    const sel = document.getElementById('staff-select');
+    sel.innerHTML = '<option value="">読み込み失敗 - 再読み込みしてください</option>';
+  }
+  document.getElementById('staff-loading').style.display = 'none';
+  document.getElementById('staff-select').style.display = 'block';
+}
+
+function init(){
+  const now = new Date();
+  calYear = now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear();
+  calMonth = (now.getMonth()+1) % 12;
+  loadStaff();
+  renderCal();
+}
+
+function changeMonth(d){
+  calMonth += d;
+  if(calMonth > 11){ calMonth = 0; calYear++; }
+  if(calMonth < 0){ calMonth = 11; calYear--; }
+  selectedDates = [];
+  renderCal();
+  updateSelectedList();
+}
+
+function renderCal(){
+  document.getElementById('cal-title').textContent = `${calYear}年${calMonth+1}月`;
+  const firstDow = new Date(calYear, calMonth, 1).getDay();
+  const dim = new Date(calYear, calMonth+1, 0).getDate();
+  const grid = document.getElementById('cal-grid');
+  grid.innerHTML = '';
+  for(let i=0;i<firstDow;i++){
+    const c = document.createElement('div');
+    c.className = 'cal-cell empty'; grid.appendChild(c);
+  }
+  for(let d=1;d<=dim;d++){
+    const dow = new Date(calYear,calMonth,d).getDay();
+    const c = document.createElement('div');
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    c.className = 'cal-cell'+(dow===0?' sun':dow===6?' sat':'')+(selectedDates.includes(ds)?' selected':'');
+    c.textContent = d;
+    c.onclick = () => toggleDate(ds, c);
+    grid.appendChild(c);
+  }
+}
+
+function toggleDate(ds, el){
+  if(selectedDates.includes(ds)){ selectedDates = selectedDates.filter(d=>d!==ds); el.classList.remove('selected'); }
+  else { selectedDates.push(ds); el.classList.add('selected'); }
+  updateSelectedList();
+}
+
+function updateSelectedList(){
+  const el = document.getElementById('selected-list');
+  if(selectedDates.length === 0){ el.textContent = '希望休を選んでください'; return; }
+  const sorted = [...selectedDates].sort();
+  el.innerHTML = `選択中：<span>${sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、')}</span>（${sorted.length}日）`;
+}
+
+async function submitRequest(){
+  const name = document.getElementById('staff-select').value;
+  if(!name){ alert('名前を選択してください'); return; }
+  if(selectedDates.length === 0){ alert('希望休を選択してください'); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '送信中…';
+  const month = `${calYear}年${calMonth+1}月`;
+  const memo = document.getElementById('memo').value;
+  try {
+    await fetch(GAS_URL, {
+      method: 'POST', mode: 'no-cors',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'kibouKyuu', name, month, dates: selectedDates.sort(), memo})
+    });
+    document.getElementById('form-area').style.display = 'none';
+    document.getElementById('success-area').style.display = 'block';
+  } catch(e){
+    alert('送信に失敗しました。もう一度お試しください。');
+    btn.disabled = false; btn.textContent = '送信する';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
