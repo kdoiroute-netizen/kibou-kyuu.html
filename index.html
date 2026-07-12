@@ -1,718 +1,161 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>シフト管理</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#f4f6fb;--white:#fff;--navy:#1c2b4a;--navy2:#253658;
-  --teal:#0891b2;--teal-light:#e0f2f7;--green:#16a34a;--green-light:#dcfce7;
-  --red:#dc2626;--red-light:#fee2e2;--yellow:#d97706;--yellow-light:#fef3c7;
-  --purple:#7c3aed;--purple-light:#ede9fe;--gray:#6b7280;--gray2:#9ca3af;
-  --border:#e2e8f0;--shadow:0 1px 3px rgba(0,0,0,.08),0 4px 12px rgba(0,0,0,.04);
-}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--navy);min-height:100vh;font-size:14px}
-.header{background:var(--navy);color:#fff;height:52px;display:flex;align-items:center;padding:0 20px;gap:12px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.2)}
-.header-logo{font-size:16px;font-weight:800;letter-spacing:-.3px}
-.header-logo span{color:#38bdf8}
-.header-tabs{display:flex;gap:2px;margin-left:auto}
-.htab{padding:6px 14px;border-radius:6px;font-size:13px;font-weight:500;color:rgba(255,255,255,.6);background:none;border:none;cursor:pointer;transition:.15s}
-.htab:hover{color:#fff;background:rgba(255,255,255,.08)}
-.htab.on{color:#fff;background:rgba(255,255,255,.15)}
-.sync-status{font-size:11px;color:rgba(255,255,255,.5);margin-left:8px;display:flex;align-items:center;gap:4px}
-.sync-dot{width:7px;height:7px;border-radius:50%;background:#22c55e}
-.sync-dot.saving{background:#f59e0b;animation:pulse .8s infinite}
-.sync-dot.error{background:#ef4444}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+// index.html / kibou-kyuu.html のLEAVE_TYPESとコードを揃えてある
+const LEAVE_TYPE_CODES = ['off','paid','paid_am','paid_pm','flex','child','child_am','child_pm','bereave','absence','absence_am','absence_pm'];
 
-.main{max-width:1300px;margin:0 auto;padding:20px}
-.page{display:none}.page.on{display:block}
-.sec-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.card{background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
+function doPost(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const data = JSON.parse(e.postData.contents);
+  const action = data.action;
 
-/* STAFF TABLE */
-.staff-table{width:100%;border-collapse:collapse}
-.staff-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border)}
-.staff-table td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
-.staff-table tr:last-child td{border-bottom:none}
-.staff-table tr:hover td{background:#fafbfd}
-.avatar{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.3)}
-.staff-name-cell{display:flex;align-items:center;gap:8px}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
-.badge-m{background:#dbeafe;color:#1d4ed8}.badge-f{background:#fce7f3;color:#be185d}
-.badge-full{background:var(--green-light);color:var(--green)}
-.badge-short{background:var(--yellow-light);color:var(--yellow)}
-.badge-weekday{background:var(--purple-light);color:var(--purple)}
-.day-chips{display:flex;gap:3px;flex-wrap:wrap}
-.day-chip{width:22px;height:22px;border-radius:5px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;background:var(--teal-light);color:var(--teal)}
-.day-chip.off{background:var(--border);color:var(--gray2)}
-.icon-btn{padding:5px 10px;border-radius:6px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:600;color:var(--gray);transition:.15s}
-.icon-btn:hover{border-color:var(--teal);color:var(--teal)}
-.add-btn{padding:8px 16px;border-radius:8px;background:var(--teal);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;transition:.15s}
-.add-btn:hover{background:#0e7490}
+  if (action === 'saveStaff') {
+    let s = ss.getSheetByName('スタッフ') || ss.insertSheet('スタッフ');
+    s.clearContents();
+    s.appendRow(['id','name','gender','type','days']);
+    data.staff.forEach(r => s.appendRow([r.id, r.name, r.gender, r.type, r.days.join(',')]));
+  }
 
-/* RULES */
-.rule-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
-@media (max-width:900px){
-  .rule-grid{grid-template-columns:repeat(4,1fr)}
-}
-@media (max-width:600px){
-  .rule-grid{grid-template-columns:repeat(2,1fr)}
-  .main{padding:12px}
-  .card{padding:14px}
-  .header{padding:0 10px;gap:6px}
-  .header-tabs{gap:0}
-  .htab{padding:5px 8px;font-size:11px}
-  .sync-status{display:none}
-}
-.rule-day-card{background:var(--bg);border-radius:10px;padding:12px;border:1.5px solid var(--border)}
-.rule-day-card.sat{border-color:#bfdbfe}.rule-day-card.sun{border-color:#fecaca}
-.rule-day-title{font-size:12px;font-weight:700;margin-bottom:10px;text-align:center;padding:3px;border-radius:5px}
-.rule-day-title.sat{background:#dbeafe;color:#1e40af}.rule-day-title.sun{background:#fee2e2;color:#991b1b}
-.rule-label{font-size:10px;font-weight:600;color:var(--gray);margin:8px 0 3px;text-transform:uppercase;letter-spacing:.3px}
-.rule-input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none;transition:.15s}
-.rule-input:focus{border-color:var(--teal)}
-.required-staff-select{width:100%;padding:5px 4px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit;outline:none;background:#fff}
+  if (action === 'saveShifts') {
+    // 保存のたびにシート全体を消すと他の月のデータが消えるため、
+    // 対象の年月の行だけを入れ替え、他の月は残す。
+    let s = ss.getSheetByName('シフト') || ss.insertSheet('シフト');
+    if (s.getLastRow() === 0) {
+      s.appendRow(['year','month','staffId','day','value']);
+    }
+    if (data.shifts.length > 0) {
+      const targetY = Number(data.shifts[0].year);
+      const targetM = Number(data.shifts[0].month);
+      const values = s.getDataRange().getValues();
+      const header = values[0];
+      const otherMonths = values.slice(1).filter(r => !(Number(r[0]) === targetY && Number(r[1]) === targetM));
+      s.clearContents();
+      s.appendRow(header);
+      otherMonths.forEach(r => s.appendRow(r));
+      data.shifts.forEach(r => s.appendRow([r.year, r.month, r.staffId, r.day, r.value]));
+    }
+  }
 
-/* SHIFT GRID */
-.month-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px}
-.month-nav h2{font-size:18px;font-weight:700;flex:1}
-.nav-btn{width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:.15s}
-.nav-btn:hover{border-color:var(--navy);background:var(--bg)}
-.gen-btn{padding:8px 18px;border-radius:8px;background:var(--teal);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:6px}
-.gen-btn:hover{background:#0e7490}
-.gen-btn:disabled{background:var(--gray2);cursor:not-allowed}
-.save-btn{padding:8px 18px;border-radius:8px;background:var(--green);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:6px}
-.save-btn:hover{background:#15803d}
+  if (action === 'saveRules') {
+    let s = ss.getSheetByName('ルール') || ss.insertSheet('ルール');
+    s.clearContents();
+    s.appendRow(['dow','minF','minM','minTotal','required']);
+    data.rules.forEach(r => s.appendRow([r.dow, r.minF, r.minM, r.minTotal || 0, r.required.join(',')]));
+  }
 
-.shift-wrap{overflow-x:auto;border-radius:12px;box-shadow:var(--shadow);overflow-y:visible}
-.shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px;table-layout:fixed}
-.shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
-.shift-table th:first-child{text-align:left;padding-left:12px;width:130px}
-.shift-table th.sat-h{background:#3b82f6}.shift-table th.sun-h{background:#ef4444}.shift-table th.today-h{background:var(--teal)}
-.th-date{font-size:14px;font-weight:800;line-height:1}.th-day{font-size:10px;opacity:.7;margin-top:2px}
-.shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px 2px;vertical-align:middle;height:56px;width:34px}.shift-table tr{height:56px}
-.shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px}
-.shift-table tr:hover td{background:#fafbfd}
-.shift-table td.sat-col{background:#f0f4ff}.shift-table td.sun-col{background:#fff5f5}
-.shift-table td.today-col{background:#f0fafb}.shift-table td.off-col{background:#f8f9fa}
-.shift-cell-btn{width:100%;height:34px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:.1s;font-family:inherit}
-.shift-cell-btn:hover{filter:brightness(.92)}
-.shift-off{background:#f1f5f9;color:var(--gray);font-size:12px;font-weight:700}
-.shift-work{color:#fff;background:#0891b2;font-size:13px;font-weight:700}
-.viol-panel{background:var(--red-light);border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-bottom:16px}
-.viol-panel h4{font-size:13px;font-weight:700;color:var(--red);margin-bottom:8px}
-.viol-panel ul{list-style:none;display:flex;flex-direction:column;gap:4px}
-.viol-panel li{font-size:12px;color:#7f1d1d;display:flex;gap:6px;align-items:flex-start}
-.viol-panel li::before{content:"⚠";flex-shrink:0}
+  if (action === 'kibouKyuu') {
+    // 種別（有給・欠勤など）と日付を文字列として明示的に保存する。
+    // 日付をそのまま書き込むとスプレッドシートが自動で日付型に
+    // 変換してしまい、後で読み込むときにズレる原因になるため、
+    // セルの表示形式を「文字列（プレーンテキスト）」に固定する。
+    let s = ss.getSheetByName('希望休') || ss.insertSheet('希望休');
+    if (s.getLastRow() === 0) {
+      s.appendRow(['送信日時','名前','対象月','種別','希望休日','備考']);
+    }
+    const row = s.getLastRow() + 1;
+    const range = s.getRange(row, 1, 1, 6);
+    range.setNumberFormats([['@','@','@','@','@','@']]);
+    range.setValues([[
+      Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss'),
+      data.name,
+      data.month,
+      data.type || 'off',
+      data.dates.join(','),
+      data.memo || ''
+    ]]);
+  }
 
-/* 希望休パネル */
-.kibou-panel{background:var(--yellow-light);border:1.5px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-bottom:16px}
-.kibou-panel h4{font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:8px}
-.kibou-item{font-size:12px;color:#78350f;padding:4px 0;border-bottom:1px solid #fde68a;display:flex;gap:8px;align-items:center}
-.kibou-item:last-child{border-bottom:none}
-.kibou-apply-btn{padding:3px 8px;border-radius:5px;background:var(--yellow);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+  if (action === 'deleteKibou') {
+    // 指定された行番号(1始まり、ヘッダー含む)の行を削除する
+    const s = ss.getSheetByName('希望休');
+    if (s && data.rowIndex > 1) s.deleteRow(data.rowIndex);
+  }
 
-/* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center}
-.overlay.on{display:flex}
-.modal{background:#fff;border-radius:16px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);animation:mIn .2s cubic-bezier(.34,1.56,.64,1)}
-@keyframes mIn{from{transform:scale(.93) translateY(8px);opacity:0}}
-.modal h3{font-size:16px;font-weight:700;margin-bottom:4px}
-.modal-sub{font-size:12px;color:var(--gray);margin-bottom:18px}
-.form-label{font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px;margin-top:14px}
-.form-input,.form-select{width:100%;padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;outline:none;transition:.15s}
-.form-input:focus,.form-select:focus{border-color:var(--teal)}
-.day-toggle-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
-.day-toggle{width:36px;height:36px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;transition:.15s;color:var(--gray)}
-.day-toggle.on{background:var(--teal);border-color:var(--teal);color:#fff}
-.modal-actions{display:flex;gap:8px;margin-top:20px}
-.btn-save{flex:1;padding:10px;border-radius:8px;background:var(--teal);color:#fff;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn-save:hover{background:#0e7490}
-.btn-cancel{padding:10px 16px;border-radius:8px;background:var(--bg);color:var(--gray);border:1.5px solid var(--border);font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn-delete{padding:10px 16px;border-radius:8px;background:#fff0f0;color:var(--red);border:1.5px solid #fca5a5;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
-.btn-delete:hover{background:var(--red);color:#fff}
-.form-row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.spinner{width:18px;height:18px;border:2.5px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;display:inline-block}
-@keyframes spin{to{transform:rotate(360deg)}}
-.shift-choice{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-.shift-choice-btn{padding:10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;transition:.15s;text-align:left}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--navy);color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s cubic-bezier(.34,1.56,.64,1);pointer-events:none;white-space:nowrap}
-.toast.on{transform:translateX(-50%) translateY(0)}
-.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
-.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--gray)}
-.legend-dot{width:10px;height:10px;border-radius:3px}
-.loading-overlay{display:none;position:fixed;inset:0;background:rgba(255,255,255,.8);z-index:300;align-items:center;justify-content:center;flex-direction:column;gap:12px;font-size:14px;color:var(--gray)}
-.loading-overlay.on{display:flex}
-.big-spinner{width:40px;height:40px;border:4px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .8s linear infinite}
-</style>
-</head>
-<body>
+  if (action === 'updateKibou') {
+    // 指定された行を書き換える
+    const s = ss.getSheetByName('希望休');
+    if (s && data.rowIndex > 1) {
+      const range = s.getRange(data.rowIndex, 1, 1, 6);
+      range.setNumberFormats([['@','@','@','@','@','@']]);
+      range.setValues([[
+        s.getRange(data.rowIndex, 1).getValue(), // 送信日時はそのまま
+        data.name,
+        data.month,
+        data.type || 'off',
+        data.dates.join(','),
+        data.memo || ''
+      ]]);
+    }
+  }
 
-<div class="header">
-  <div class="header-logo">シフト<span>管理</span></div>
-  <div class="sync-status">
-    <div class="sync-dot" id="sync-dot"></div>
-    <span id="sync-label">同期済み</span>
-  </div>
-  <div class="header-tabs">
-    <button class="htab on" onclick="showPage('shift',this)">📅 シフト表</button>
-    <button class="htab" onclick="showPage('staff',this)">👥 スタッフ</button>
-    <button class="htab" onclick="showPage('rules',this)">⚙️ ルール</button>
-    <button class="htab" onclick="showPage('kibou',this)">📩 希望休</button>
-  </div>
-</div>
-
-<div class="loading-overlay" id="loading-overlay">
-  <div class="big-spinner"></div>
-  <div id="loading-msg">データを読み込み中…</div>
-</div>
-
-<div class="main">
-  <!-- SHIFT PAGE -->
-  <div class="page on" id="page-shift">
-    <div class="month-nav">
-      <button class="nav-btn" onclick="changeMonth(-1)">‹</button>
-      <h2 id="month-label"></h2>
-      <button class="nav-btn" onclick="changeMonth(1)">›</button>
-      <button class="gen-btn" id="gen-btn" onclick="generateShift()">✨ AI生成</button>
-      <button class="save-btn" onclick="saveShiftToSheet()">💾 保存</button>
-    </div>
-    <div class="legend">
-      <div class="legend-item"><div class="legend-dot" style="background:#0891b2"></div>出勤</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f1f5f9;border:1px solid var(--border)"></div>休み</div>
-    </div>
-    <div id="viol-panel"></div>
-    <div class="shift-wrap"><table class="shift-table" id="shift-table"></table></div>
-  </div>
-
-  <!-- STAFF PAGE -->
-  <div class="page" id="page-staff">
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div class="sec-title" style="margin:0"><span>👥</span>スタッフ管理</div>
-        <button class="add-btn" onclick="openStaffModal()">＋ スタッフ追加</button>
-      </div>
-      <table class="staff-table">
-        <thead><tr><th>名前</th><th>性別</th><th>勤務形態</th><th>出勤可能曜日</th><th>操作</th></tr></thead>
-        <tbody id="staff-tbody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- RULES PAGE -->
-  <div class="page" id="page-rules">
-    <div class="card">
-      <div class="sec-title"><span>⚙️</span>曜日別ルール設定</div>
-      <div class="rule-grid" id="rule-grid"></div>
-      <button class="add-btn" onclick="saveRules()">💾 ルールを保存</button>
-    </div>
-  </div>
-
-  <!-- KIBOU PAGE -->
-  <div class="page" id="page-kibou">
-    <div class="card">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-        <div class="sec-title" style="margin:0"><span>📩</span>希望休一覧</div>
-        <button class="add-btn" onclick="loadKibou()">🔄 最新を取得</button>
-      </div>
-      <div id="kibou-list"></div>
-    </div>
-  </div>
-</div>
-
-<!-- STAFF MODAL -->
-<div class="overlay" id="staff-overlay" onclick="closeStaffModal(event)">
-<div class="modal">
-  <h3 id="staff-modal-title">スタッフ追加</h3>
-  <p class="modal-sub">スタッフの基本情報と勤務条件を設定してください</p>
-  <label class="form-label">氏名</label>
-  <input class="form-input" id="s-name" placeholder="例：田中 花子">
-  <div class="form-row2">
-    <div><label class="form-label">性別</label>
-      <select class="form-select" id="s-gender">
-        <option value="f">女性</option><option value="m">男性</option>
-      </select>
-    </div>
-    <div><label class="form-label">勤務形態</label>
-      <select class="form-select" id="s-type" onchange="onTypeChange()">
-        <option value="full">常勤（土日祝休み）</option>
-        <option value="short16">時短 9:00〜16:00</option>
-        <option value="short17">時短 9:00〜17:00</option>
-        <option value="weekday">平日休み出勤</option>
-      </select>
-    </div>
-  </div>
-  <label class="form-label">出勤可能曜日</label>
-  <div class="day-toggle-row" id="day-toggles"></div>
-  <div class="modal-actions">
-    <button class="btn-delete" id="staff-del-btn" style="display:none" onclick="deleteStaff()">削除</button>
-    <button class="btn-cancel" onclick="closeStaffModal()">キャンセル</button>
-    <button class="btn-save" onclick="saveStaff()">保存</button>
-  </div>
-</div>
-</div>
-
-<!-- SHIFT MODAL -->
-<div class="overlay" id="shift-overlay" onclick="closeShiftModal(event)">
-<div class="modal">
-  <h3 id="shift-modal-title">シフト編集</h3>
-  <p class="modal-sub" id="shift-modal-sub"></p>
-  <div class="shift-choice" id="shift-choices"></div>
-  <div class="modal-actions">
-    <button class="btn-cancel" onclick="closeShiftModal()">キャンセル</button>
-    <button class="btn-save" onclick="saveShiftEdit()">保存</button>
-  </div>
-</div>
-</div>
-
-<div class="toast" id="toast"></div>
-
-<script>
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
-const DAYS = ['日','月','火','水','木','金','土'];
-const TYPE_MAP = {
-  full:    {label:'常勤',time:'9:00〜18:00'},
-  short16: {label:'時短(〜16)',time:'9:00〜16:00'},
-  short17: {label:'時短(〜17)',time:'9:00〜17:00'},
-  weekday: {label:'平日休み出勤',time:'9:00〜18:00'},
-};
-// シフト表・シフト編集モーダルでの表示は勤務形態によらず「出勤」で統一
-const SHIFT_WORK_LABEL = '出勤';
-const COLORS=['#0891b2','#7c3aed','#d97706','#16a34a','#e85555','#c65b8a','#4a90d9','#5e8a45','#8a5b45','#456b8a','#8a456b','#6b8a45','#456b6b','#8a6b45','#4a5ea7','#a75e4a','#5ea74a','#a74a5e','#5e4aa7','#a7855e'];
-
-let staff = [];
-let rules = {0:{minF:1,minM:1,minTotal:0,required:[]},1:{minF:2,minM:1,minTotal:0,required:[]},2:{minF:2,minM:1,minTotal:0,required:[]},3:{minF:2,minM:1,minTotal:0,required:[]},4:{minF:2,minM:1,minTotal:0,required:[]},5:{minF:2,minM:1,minTotal:0,required:[]},6:{minF:1,minM:1,minTotal:0,required:[]}};
-let shifts = {};
-let monthOffset = 0;
-let editingStaffId = null;
-let editingShift = null;
-let selectedShiftValue = null;
-let editingDays = [];
-
-function getNow(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+monthOffset); return d; }
-function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
-function initials(n){ if(!n) return '??'; return n.replace(/\s+/g,'').slice(0,2)||n.slice(0,2); }
-function getShiftKey(y,m){ return `${y}-${m}`; }
-function ensureShifts(y,m){ const k=getShiftKey(y,m); if(!shifts[k]) shifts[k]={}; return shifts[k]; }
-function getShift(y,m,sid,d){ return shifts[getShiftKey(y,m)]?.[sid]?.[d]??null; }
-function setShift(y,m,sid,d,val){ const k=getShiftKey(y,m); if(!shifts[k]) shifts[k]={}; if(!shifts[k][sid]) shifts[k][sid]={}; shifts[k][sid][d]=val; }
-function getTypeColor(t){ return {full:'#0891b2',short16:'#7c3aed',short17:'#d97706',weekday:'#16a34a'}[t]||'#6b7280'; }
-
-// SYNC STATUS
-function setSyncStatus(status, msg){
-  const dot=document.getElementById('sync-dot');
-  const lbl=document.getElementById('sync-label');
-  dot.className='sync-dot'+(status==='saving'?' saving':status==='error'?' error':'');
-  lbl.textContent=msg;
+  return ContentService.createTextOutput(JSON.stringify({result:'success'})).setMimeType(ContentService.MimeType.JSON);
 }
 
-// GAS FETCH
-async function gasGet(action){
-  const res = await fetch(`${GAS_URL}?action=${action}`);
-  return await res.json();
-}
-async function gasPost(data){
-  await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-}
+function doGet(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const action = e.parameter.action;
+  let result = {};
 
-// LOAD ALL
-async function loadAll(){
-  document.getElementById('loading-overlay').classList.add('on');
-  try {
-    const [staffRes, shiftsRes, rulesRes] = await Promise.all([
-      gasGet('loadStaff'), gasGet('loadShifts'), gasGet('loadRules')
-    ]);
-    if(staffRes.staff && staffRes.staff.length > 0){
-      staff = staffRes.staff.map(s=>({
-        ...s,
-        id: Number(s.id),
-        days: Array.isArray(s.days) ? s.days.map(Number) : []
+  if (action === 'loadStaff') {
+    const s = ss.getSheetByName('スタッフ');
+    if (s && s.getLastRow() > 1) {
+      result.staff = s.getDataRange().getValues().slice(1).map(r => ({
+        id: Number(r[0]), name: String(r[1]).trim(), gender: r[2], type: r[3],
+        days: r[4] ? r[4].toString().split(',').map(Number) : []
       }));
-    }
-    if(rulesRes.rules && rulesRes.rules.length > 0){
-      rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,minTotal:r.minTotal||0,required:r.required||[]}; });
-    }
-    if(shiftsRes.shifts && shiftsRes.shifts.length > 0){
-      shiftsRes.shifts.forEach(s => { setShift(Number(s.year),Number(s.month),Number(s.staffId),Number(s.day),s.value); });
-    }
-    setSyncStatus('ok','同期済み');
-  } catch(e){
-    console.error(e);
-    setSyncStatus('error','読み込みエラー');
+    } else { result.staff = []; }
   }
-  document.getElementById('loading-overlay').classList.remove('on');
-  renderShift();
-}
 
-// SAVE STAFF
-async function saveStaffToSheet(){
-  setSyncStatus('saving','保存中…');
-  try {
-    await gasPost({action:'saveStaff',staff});
-    setSyncStatus('ok','同期済み');
-  } catch(e){ setSyncStatus('error','保存失敗'); }
-}
+  if (action === 'loadShifts') {
+    const s = ss.getSheetByName('シフト');
+    if (s && s.getLastRow() > 1) {
+      result.shifts = s.getDataRange().getValues().slice(1).map(r => ({
+        year: Number(r[0]), month: Number(r[1]), staffId: Number(r[2]), day: Number(r[3]), value: r[4]
+      }));
+    } else { result.shifts = []; }
+  }
 
-// SAVE SHIFTS
-async function saveShiftToSheet(){
-  setSyncStatus('saving','保存中…');
-  const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
-  const dim=daysInMonth(y,m);
-  const arr=[];
-  staff.forEach(s=>{
-    for(let d=1;d<=dim;d++){
-      const v=getShift(y,m,s.id,d);
-      if(v) arr.push({year:y,month:m,staffId:s.id,day:d,value:v});
-    }
-  });
-  try {
-    await gasPost({action:'saveShifts',shifts:arr});
-    setSyncStatus('ok','同期済み');
-    showToast('💾 シフトを保存しました');
-  } catch(e){ setSyncStatus('error','保存失敗'); showToast('❌ 保存に失敗しました'); }
-}
+  if (action === 'loadRules') {
+    const s = ss.getSheetByName('ルール');
+    if (s && s.getLastRow() > 1) {
+      result.rules = s.getDataRange().getValues().slice(1).map(r => ({
+        dow: Number(r[0]), minF: Number(r[1]), minM: Number(r[2]),
+        minTotal: Number(r[3]) || 0,
+        required: r[4] ? r[4].toString().split(',').map(Number).filter(n => !isNaN(n) && n > 0) : []
+      }));
+    } else { result.rules = []; }
+  }
 
-// NAV
-function showPage(id,btn){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
-  document.querySelectorAll('.htab').forEach(t=>t.classList.remove('on'));
-  document.getElementById('page-'+id).classList.add('on');
-  if(btn) btn.classList.add('on');
-  if(id==='staff') renderStaff();
-  if(id==='rules') renderRules();
-  if(id==='kibou') loadKibou();
-  if(id==='shift') renderShift();
-}
-
-function changeMonth(d){ monthOffset+=d; renderShift(); }
-
-// RENDER SHIFT
-function renderShift(){
-  const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
-  const dim=daysInMonth(y,m);
-  const todayD=new Date(); const isThisMonth=(todayD.getFullYear()===y&&todayD.getMonth()===m);
-  document.getElementById('month-label').textContent=`${y}年 ${m+1}月`;
-  ensureShifts(y,m);
-  const days=[];
-  for(let d=1;d<=dim;d++){ const dow=new Date(y,m,d).getDay(); days.push({d,dow}); }
-
-  let hdr='<thead><tr><th>スタッフ</th>';
-  days.forEach(({d,dow})=>{
-    const isTod=isThisMonth&&d===todayD.getDate();
-    const cls=isTod?'today-h':dow===6?'sat-h':dow===0?'sun-h':'';
-    hdr+=`<th class="${cls}"><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div></th>`;
-  });
-  hdr+='</tr></thead>';
-
-  let body='<tbody>';
-  staff.forEach((s,si)=>{
-    const color=COLORS[(si+1)%COLORS.length]||COLORS[0];
-    let row=`<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color};flex-shrink:0">${initials(s.name)}</div><div style="overflow:hidden"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${s.name||'名前なし'}</div><div style="font-size:10px;color:var(--gray);white-space:nowrap">${TYPE_MAP[s.type]?.label||''}</div></div></div></td>`;
-    days.forEach(({d,dow})=>{
-      const isTod=isThisMonth&&d===todayD.getDate();
-      const val=getShift(y,m,s.id,d);
-      const canWork=s.days.includes(dow);
-      let colCls=isTod?'today-col':dow===6?'sat-col':dow===0?'sun-col':'';
-      if(!canWork) colCls+=' off-col';
-      if(val==='work'){
-        const t=TYPE_MAP[s.type];
-        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-work" onclick="openShiftModal(${s.id},${d})" title="${t.time}">${SHIFT_WORK_LABEL}</button></td>`;
-      } else {
-        row+=`<td class="${colCls}"><button class="shift-cell-btn shift-off" onclick="openShiftModal(${s.id},${d})">休み</button></td>`;
-      }
-    });
-    row+='</tr>'; body+=row;
-  });
-
-  // 集計行
-  let sumRow='<tr style="background:var(--navy)">';
-  sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1)">出勤人数</td>`;
-  const violations=[];
-  days.forEach(({d,dow})=>{
-    let wF=0,wM=0;
-    staff.forEach(s=>{ if(getShift(y,m,s.id,d)==='work'){ if(s.gender==='f') wF++; else wM++; } });
-    const r=rules[dow];
-    const hasWork=staff.some(s=>getShift(y,m,s.id,d)==='work');
-    if(hasWork){
-      if(wF<r.minF) violations.push(`${m+1}/${d}（${DAYS[dow]}）：女性${r.minF}名必要（現在${wF}名）`);
-      if(wM<r.minM) violations.push(`${m+1}/${d}（${DAYS[dow]}）：男性${r.minM}名必要（現在${wM}名）`);
-      if(r.minTotal && (wF+wM)<r.minTotal) violations.push(`${m+1}/${d}（${DAYS[dow]}）：合計${r.minTotal}名必要（現在${wF+wM}名）`);
-      r.required.forEach(rid=>{
-        if(getShift(y,m,rid,d)!=='work'){
-          const sm=staff.find(x=>x.id===rid);
-          if(sm) violations.push(`${m+1}/${d}（${DAYS[dow]}）：必須「${sm.name}」が未出勤`);
+  if (action === 'loadKibou') {
+    const s = ss.getSheetByName('希望休');
+    if (s && s.getLastRow() > 1) {
+      const rows = s.getDataRange().getValues().slice(1).filter(r => r[1]);
+      result.kibou = rows.map((r, i) => {
+        const dCell = String(r[3]).trim();
+        const isNewFormat = LEAVE_TYPE_CODES.indexOf(dCell) !== -1;
+        if (isNewFormat) {
+          return {
+            rowIndex: i + 2, // ヘッダー行(1行目)を除いた実際の行番号
+            timestamp: r[0], name: String(r[1]).trim(), month: String(r[2]).trim(),
+            type: dCell, dates: parseDatesCell(r[4]), memo: r[5]
+          };
         }
+        return {
+          rowIndex: i + 2,
+          timestamp: r[0], name: String(r[1]).trim(), month: String(r[2]).trim(),
+          type: 'off', dates: parseDatesCell(r[3]), memo: r[4]
+        };
       });
-    }
-    const total=wF+wM; const ok=(wF>=r.minF&&wM>=r.minM&&total>=(r.minTotal||0));
-    const isTod=isThisMonth&&d===todayD.getDate();
-    const bg=isTod?'rgba(8,145,178,.4)':dow===6?'rgba(59,130,246,.3)':dow===0?'rgba(239,68,68,.3)':'rgba(255,255,255,.05)';
-    sumRow+=`<td style="background:${bg};text-align:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.08)"><div style="font-size:14px;font-weight:800;color:${total===0?'rgba(255,255,255,.3)':ok?'#86efac':'#fca5a5'}">${total||'―'}</div><div style="font-size:9px;color:rgba(255,255,255,.5)">女${wF} 男${wM}</div></td>`;
-  });
-  sumRow+='</tr>';
-  body+=sumRow+'</tbody>';
-
-  const vp=document.getElementById('viol-panel');
-  vp.innerHTML=violations.length>0?`<div class="viol-panel"><h4>⚠️ ルール違反 ${violations.length}件</h4><ul>${violations.map(v=>`<li>${v}</li>`).join('')}</ul></div>`:'';
-  document.getElementById('shift-table').innerHTML=hdr+body;
-}
-
-// AUTO GENERATE (rule-based with kibou)
-async function generateShift(){
-  const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
-  const btn=document.getElementById('gen-btn');
-  btn.disabled=true; btn.innerHTML='生成中…';
-
-  const dim=daysInMonth(y,m);
-  const monthStr=`${y}年${m+1}月`;
-
-  // 希望休データを取得（タイムアウト付き）
-  let kibouMap={}; // {staffId: [day,...]}
-  try {
-    const controller=new AbortController();
-    const timeout=setTimeout(()=>controller.abort(),5000);
-    const res=await gasGet('loadKibou');
-    clearTimeout(timeout);
-    const list=res.kibou||[];
-    list.filter(k=>k.month===monthStr).forEach(k=>{
-      const s=staff.find(x=>x.name===k.name);
-      if(!s) return;
-      if(!kibouMap[s.id]) kibouMap[s.id]=[];
-      k.dates.forEach(ds=>{
-        const dt=new Date(ds);
-        if(dt.getFullYear()===y&&dt.getMonth()===m) kibouMap[s.id].push(dt.getDate());
-      });
-    });
-  } catch(e){ console.log('希望休取得スキップ'); }
-
-  // まず全部クリア
-  staff.forEach(s=>{ for(let d=1;d<=dim;d++) setShift(y,m,s.id,d,'off'); });
-
-  // 各日付を処理
-  for(let d=1;d<=dim;d++){
-    const dow=new Date(y,m,d).getDay();
-    const r=rules[dow];
-    const isSat=dow===6, isSun=dow===0;
-
-    staff.forEach(s=>{
-      const isKibou=(kibouMap[s.id]||[]).includes(d);
-      const isWeekday=s.type==='weekday';
-      const isFixed=(s.type==='full'||s.type==='short16'||s.type==='short17');
-
-      if(isKibou){
-        setShift(y,m,s.id,d,'off');
-      } else if(isFixed && (isSat||isSun)){
-        setShift(y,m,s.id,d,'off');
-      } else if(isFixed && !isSat && !isSun){
-        setShift(y,m,s.id,d,'work');
-      } else if(isWeekday && s.days.includes(dow)){
-        setShift(y,m,s.id,d,'work');
-      }
-    });
-
-    // 必須スタッフ強制work
-    (r.required||[]).forEach(rid=>{
-      const rs=staff.find(x=>x.id===rid);
-      if(rs) setShift(y,m,rid,d,'work');
-    });
-
-    // 人数不足なら平日休みスタッフで補填
-    let wF=staff.filter(s=>getShift(y,m,s.id,d)==='work'&&s.gender==='f').length;
-    let wM=staff.filter(s=>getShift(y,m,s.id,d)==='work'&&s.gender==='m').length;
-
-    if(wF<r.minF){
-      const pool=staff.filter(s=>s.type==='weekday'&&s.gender==='f'&&getShift(y,m,s.id,d)!=='work'&&!(kibouMap[s.id]||[]).includes(d));
-      pool.sort(()=>Math.random()-.5);
-      for(let i=0;i<pool.length&&wF<r.minF;i++){ setShift(y,m,pool[i].id,d,'work'); wF++; }
-    }
-    if(wM<r.minM){
-      const pool=staff.filter(s=>s.type==='weekday'&&s.gender==='m'&&getShift(y,m,s.id,d)!=='work'&&!(kibouMap[s.id]||[]).includes(d));
-      pool.sort(()=>Math.random()-.5);
-      for(let i=0;i<pool.length&&wM<r.minM;i++){ setShift(y,m,pool[i].id,d,'work'); wM++; }
-    }
-
-    // 合計最低人数を満たすまで補填（性別不問）
-    if(r.minTotal){
-      let total=staff.filter(s=>getShift(y,m,s.id,d)==='work').length;
-      if(total<r.minTotal){
-        const pool=staff.filter(s=>s.type==='weekday'&&getShift(y,m,s.id,d)!=='work'&&!(kibouMap[s.id]||[]).includes(d));
-        pool.sort(()=>Math.random()-.5);
-        for(let i=0;i<pool.length&&total<r.minTotal;i++){ setShift(y,m,pool[i].id,d,'work'); total++; }
-      }
-    }
+    } else { result.kibou = []; }
   }
 
-  renderShift();
-  showToast('✅ シフトを自動生成しました');
-  btn.disabled=false; btn.innerHTML='✨ AI生成';
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
-// SHIFT MODAL
-function openShiftModal(sid,d){
-  const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
-  const s=staff.find(x=>x.id===sid); const dow=new Date(y,m,d).getDay();
-  const cur=getShift(y,m,sid,d);
-  editingShift={sid,d,y,m}; selectedShiftValue=cur||'off';
-  document.getElementById('shift-modal-title').textContent=s.name;
-  document.getElementById('shift-modal-sub').textContent=`${m+1}月${d}日（${DAYS[dow]}）`;
-  const t=TYPE_MAP[s.type];
-  document.getElementById('shift-choices').innerHTML=`
-    <button class="shift-choice-btn" onclick="selectShift('work',this)" style="${selectedShiftValue==='work'?'background:#0891b2;color:#fff;border-color:transparent':''}">
-      ✅ 出勤<br><span style="font-size:10px;opacity:.8">${t.time}</span>
-    </button>
-    <button class="shift-choice-btn" onclick="selectShift('off',this)" style="${selectedShiftValue==='off'?'background:var(--gray);color:#fff;border-color:transparent':''}">
-      ✕ 休み
-    </button>`;
-  document.getElementById('shift-overlay').classList.add('on');
+// 希望休日のセルを安全にパースする。
+// 過去に日付型として誤って保存されてしまった行が残っていても、
+// 落ちずに正しい日付文字列（yyyy-MM-dd）に変換できるようにする。
+function parseDatesCell(v) {
+  if (!v) return [];
+  if (v instanceof Date) {
+    return [Utilities.formatDate(v, Session.getScriptTimeZone(), 'yyyy-MM-dd')];
+  }
+  return v.toString().split(',').map(x => x.trim()).filter(Boolean);
 }
-function selectShift(val,btn){
-  selectedShiftValue=val;
-  document.querySelectorAll('.shift-choice-btn').forEach(b=>{ b.style.background='';b.style.color='';b.style.borderColor=''; });
-  if(val==='work'){ btn.style.background='#0891b2';btn.style.color='#fff';btn.style.borderColor='transparent'; }
-  else { btn.style.background='var(--gray)';btn.style.color='#fff';btn.style.borderColor='transparent'; }
-}
-function saveShiftEdit(){ if(!editingShift) return; setShift(editingShift.y,editingShift.m,editingShift.sid,editingShift.d,selectedShiftValue); closeShiftModal(); renderShift(); }
-function closeShiftModal(e){ if(e&&e.target!==document.getElementById('shift-overlay')) return; document.getElementById('shift-overlay').classList.remove('on'); editingShift=null; }
-
-// STAFF
-function renderStaff(){
-  document.getElementById('staff-tbody').innerHTML=staff.map((s,si)=>{
-    const color=COLORS[(si+1)%COLORS.length]||COLORS[0];
-    const dayChips=DAYS.map((dn,i)=>`<div class="day-chip${s.days.includes(i)?'':' off'}">${dn}</div>`).join('');
-    const gBadge=s.gender==='f'?'<span class="badge badge-f">女性</span>':'<span class="badge badge-m">男性</span>';
-    const tBadge=s.type==='full'?'<span class="badge badge-full">常勤</span>':s.type==='weekday'?'<span class="badge badge-weekday">平日休み</span>':'<span class="badge badge-short">時短</span>';
-    return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
-  }).join('');
-}
-
-function openStaffModal(id){
-  editingStaffId=id||null;
-  const s=id?staff.find(x=>x.id===id):null;
-  document.getElementById('staff-modal-title').textContent=s?'スタッフ編集':'スタッフ追加';
-  document.getElementById('s-name').value=s?s.name:'';
-  document.getElementById('s-gender').value=s?s.gender:'f';
-  document.getElementById('s-type').value=s?s.type:'full';
-  editingDays=s?[...s.days]:[1,2,3,4,5];
-  renderDayToggles(); onTypeChange();
-  document.getElementById('staff-del-btn').style.display=s?'block':'none';
-  document.getElementById('staff-overlay').classList.add('on');
-}
-function renderDayToggles(){
-  document.getElementById('day-toggles').innerHTML=DAYS.map((dn,i)=>`<button class="day-toggle${editingDays.includes(i)?' on':''}" onclick="toggleDay(${i},this)">${dn}</button>`).join('');
-}
-function toggleDay(i,btn){ if(editingDays.includes(i)) editingDays=editingDays.filter(d=>d!==i); else editingDays.push(i); btn.classList.toggle('on'); }
-function onTypeChange(){
-  const t=document.getElementById('s-type').value;
-  if(t==='weekday') editingDays=[0,6]; else editingDays=[1,2,3,4,5];
-  renderDayToggles();
-}
-async function saveStaff(){
-  const name=document.getElementById('s-name').value.trim();
-  if(!name){ showToast('❌ 氏名を入力してください'); return; }
-  const obj={name,gender:document.getElementById('s-gender').value,type:document.getElementById('s-type').value,days:[...editingDays].sort((a,b)=>a-b)};
-  if(editingStaffId){ const idx=staff.findIndex(s=>s.id===editingStaffId); staff[idx]={...staff[idx],...obj}; }
-  else { const newId=Math.max(0,...staff.map(s=>s.id))+1; staff.push({id:newId,...obj}); }
-  closeStaffModal(); renderStaff();
-  await saveStaffToSheet();
-  showToast(`✅ ${name} を保存しました`);
-}
-async function deleteStaff(){
-  if(!confirm('削除しますか？')) return;
-  staff=staff.filter(s=>s.id!==editingStaffId);
-  closeStaffModal(); renderStaff();
-  await saveStaffToSheet();
-  showToast('🗑️ 削除しました');
-}
-function closeStaffModal(e){ if(e&&e.target!==document.getElementById('staff-overlay')) return; document.getElementById('staff-overlay').classList.remove('on'); editingStaffId=null; }
-
-// RULES
-function renderRules(){
-  document.getElementById('rule-grid').innerHTML=DAYS.map((dn,dow)=>{
-    const r=rules[dow]; const isSat=dow===6,isSun=dow===0;
-    const reqOpts=staff.map(s=>`<option value="${s.id}"${(r.required||[]).includes(s.id)?'selected':''}>${s.name}</option>`).join('');
-    return `<div class="rule-day-card${isSat?' sat':isSun?' sun':''}">
-      <div class="rule-day-title${isSat?' sat':isSun?' sun':''}">${dn}曜日</div>
-      <div class="rule-label">女性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minF}" id="rule-f-${dow}">
-      <div class="rule-label">男性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minM}" id="rule-m-${dow}">
-      <div class="rule-label">合計 最低人数</div><input class="rule-input" type="number" min="0" max="20" value="${r.minTotal||0}" id="rule-t-${dow}">
-      <div class="rule-label">必須スタッフ</div>
-      <select class="required-staff-select" id="rule-req-${dow}" multiple size="3">${reqOpts}</select>
-    </div>`;
-  }).join('');
-}
-async function saveRules(){
-  DAYS.forEach((_,dow)=>{
-    const minF=parseInt(document.getElementById(`rule-f-${dow}`)?.value||0);
-    const minM=parseInt(document.getElementById(`rule-m-${dow}`)?.value||0);
-    const minTotal=parseInt(document.getElementById(`rule-t-${dow}`)?.value||0);
-    const sel=document.getElementById(`rule-req-${dow}`);
-    const required=sel?Array.from(sel.selectedOptions).map(o=>parseInt(o.value)):[];
-    rules[dow]={minF,minM,minTotal,required};
-  });
-  setSyncStatus('saving','保存中…');
-  try {
-    await gasPost({action:'saveRules',rules:Object.entries(rules).map(([dow,r])=>({dow:Number(dow),...r}))});
-    setSyncStatus('ok','同期済み');
-    showToast('✅ ルールを保存しました');
-  } catch(e){ setSyncStatus('error','保存失敗'); }
-  renderShift();
-}
-
-// KIBOU
-// ※月の絞り込みはせず、届いている希望休を全件（月・日付順）で表示する。
-//   これまでは「現在シフト表で開いている月」に一致するものしか表示されず、
-//   別の月の希望休が見えない不具合があったため修正。
-async function loadKibou(){
-  document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px">読み込み中…</div>';
-  try {
-    const res=await gasGet('loadKibou');
-    const list=res.kibou||[];
-    if(list.length===0){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px;padding:12px 0">希望休の申請はまだありません</div>'; return; }
-    // 日付が新しい月＆最近届いた順に並べ替え
-    const sorted=[...list].sort((a,b)=>{
-      const da=(a.dates&&a.dates[0])||'', db=(b.dates&&b.dates[0])||'';
-      return db.localeCompare(da);
-    });
-    document.getElementById('kibou-list').innerHTML=sorted.map((k,i)=>{
-      const dates=k.dates.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
-      const datesJson=JSON.stringify(k.dates);
-      const nameJson=JSON.stringify(k.name);
-      return `<div class="kibou-item">
-        <div style="flex:1"><span style="color:var(--gray);font-size:11px">${k.month||''}</span><br><strong>${k.name}</strong>　希望休：<span style="color:var(--red);font-weight:700">${dates}</span>${k.memo?'　備考：'+k.memo:''}</div>
-        <button class="kibou-apply-btn" onclick="applyKibou(${nameJson},${datesJson})">シフトに反映</button>
-      </div>`;
-    }).join('');
-  } catch(e){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--red);font-size:13px">読み込みに失敗しました</div>'; }
-}
-
-// ※以前は「現在シフト表で開いている月」と一致する日付しか反映されなかったため、
-//   希望した月とシフト表の表示月がズレていると反映漏れが起きていた。
-//   日付そのものが持つ年月に反映し、該当月のシフト表へ自動的に移動するよう修正。
-function applyKibou(name, dates){
-  const s=staff.find(x=>x.name===name);
-  if(!s){ showToast(`❌ 「${name}」がスタッフ一覧にいません`); return; }
-  if(!dates || dates.length===0) return;
-  dates.forEach(ds=>{
-    const dt=new Date(ds);
-    setShift(dt.getFullYear(),dt.getMonth(),s.id,dt.getDate(),'off');
-  });
-  // 反映した希望休の月にシフト表の表示を合わせる
-  const target=new Date(dates[0]);
-  const base=new Date(); base.setDate(1);
-  monthOffset=(target.getFullYear()-base.getFullYear())*12+(target.getMonth()-base.getMonth());
-  document.querySelector('.htab').click();
-  renderShift();
-  showToast(`✅ ${name}の希望休をシフトに反映しました（${target.getMonth()+1}月）`);
-}
-
-// TOAST
-function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2500); }
-
-// INIT
-loadAll();
-</script>
-</body>
-</html>
