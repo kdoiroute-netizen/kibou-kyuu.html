@@ -16,18 +16,26 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block}
 .select{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;outline:none;background:#fff;color:var(--navy)}
 .select:focus{border-color:var(--teal)}
+
+/* 休暇種別タブ */
+.type-tabs{display:flex;flex-wrap:wrap;gap:6px}
+.type-tab{padding:8px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--navy);font-family:inherit;transition:.15s}
+.type-tab.on{color:#fff;border-color:transparent}
+.type-desc{font-size:11px;color:var(--gray);margin-top:10px;line-height:1.5}
+
+.current-type-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:14px}
+.current-type-banner .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+
 .cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .cal-day-label{text-align:center;font-size:11px;font-weight:700;color:var(--gray);padding:4px 0}
 .cal-day-label.sun{color:#ef4444}.cal-day-label.sat{color:#3b82f6}
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
 .cal-cell{aspect-ratio:1;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:.15s;display:flex;align-items:center;justify-content:center;color:var(--navy)}
 .cal-cell:hover{border-color:var(--teal);background:#e0f2f7}
-.cal-cell.selected{background:var(--red);border-color:var(--red);color:#fff}
 .cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
 .cal-cell.sun{color:#ef4444}.cal-cell.sat{color:#3b82f6}
-.cal-cell.selected.sun,.cal-cell.selected.sat{color:#fff}
 .selected-list{font-size:13px;color:var(--gray);margin-top:10px;min-height:20px}
-.selected-list span{color:var(--red);font-weight:700}
+.selected-list b{font-weight:700}
 .submit-btn{width:100%;padding:14px;border-radius:10px;background:var(--teal);color:#fff;border:none;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s}
 .submit-btn:hover{background:#0e7490}
 .submit-btn:disabled{background:var(--gray);cursor:not-allowed}
@@ -35,6 +43,19 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .success .icon{font-size:60px;margin-bottom:16px}
 .success h2{font-size:20px;font-weight:800;margin-bottom:8px}
 .success p{font-size:14px;color:var(--gray)}
+
+/* 確認画面 */
+.confirm-area{display:none}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.confirm-row:last-child{border-bottom:none}
+.confirm-row .k{font-size:12px;color:var(--gray);font-weight:700}
+.confirm-row .v{font-size:14px;font-weight:700;text-align:right}
+.confirm-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:700}
+.confirm-actions{display:flex;gap:8px;margin-top:16px}
+.back-btn{padding:14px;border-radius:10px;background:var(--bg);color:var(--gray);border:1.5px solid var(--border);font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;flex:1}
+.confirm-submit-btn{padding:14px;border-radius:10px;background:var(--teal);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;flex:2}
+.confirm-submit-btn:hover{background:#0e7490}
+.confirm-submit-btn:disabled{background:var(--gray);cursor:not-allowed}
 .month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .month-nav h3{font-size:15px;font-weight:700}
 .mnav-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:14px}
@@ -46,7 +67,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <body>
 <div class="header">
   <h1>📅 希望休申請</h1>
-  <p>希望する休日をカレンダーで選んで送信してください</p>
+  <p>種別を選び、休みたい日をカレンダーで選んで送信してください</p>
 </div>
 <div class="main">
   <div id="form-area">
@@ -57,6 +78,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="">-- 選択してください --</option>
       </select>
     </div>
+    <div class="card">
+      <label class="label">休暇の種類</label>
+      <div class="type-tabs" id="type-tabs"></div>
+      <div class="type-desc" id="type-desc"></div>
+    </div>
+    <div class="current-type-banner" id="current-type-banner"></div>
     <div class="card">
       <div class="month-nav">
         <button class="mnav-btn" onclick="changeMonth(-1)">‹</button>
@@ -73,25 +100,78 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="cal-day-label sat">土</div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
-      <div class="selected-list" id="selected-list">希望休を選んでください</div>
+      <div class="selected-list" id="selected-list">希望日を選んでください</div>
     </div>
     <div class="card">
       <label class="label">備考（任意）</label>
       <textarea class="select" id="memo" rows="3" placeholder="理由など（任意）" style="resize:none"></textarea>
     </div>
-    <button class="submit-btn" id="submit-btn" onclick="submitRequest()">送信する</button>
+    <button class="submit-btn" id="submit-btn" onclick="showConfirm()">確認する</button>
+  </div>
+  <div class="confirm-area" id="confirm-area">
+    <div class="card">
+      <div class="confirm-row"><div class="k">名前</div><div class="v" id="c-name"></div></div>
+      <div class="confirm-row"><div class="k">種類</div><div class="v"><span class="confirm-type-badge" id="c-type"></span></div></div>
+      <div class="confirm-row"><div class="k">対象月</div><div class="v" id="c-month"></div></div>
+      <div class="confirm-row"><div class="k">希望日</div><div class="v" id="c-dates"></div></div>
+      <div class="confirm-row"><div class="k">備考</div><div class="v" id="c-memo"></div></div>
+    </div>
+    <p style="font-size:12px;color:var(--gray);text-align:center;margin-bottom:14px">内容に間違いがないか確認してください</p>
+    <div class="confirm-actions">
+      <button class="back-btn" onclick="hideConfirm()">戻って修正する</button>
+      <button class="confirm-submit-btn" id="confirm-submit-btn" onclick="submitRequest()">この内容で送信する</button>
+    </div>
   </div>
   <div class="success" id="success-area">
     <div class="icon">✅</div>
     <h2>送信完了！</h2>
-    <p>希望休の申請を受け付けました。<br>管理者が確認してシフトに反映します。</p>
+    <p>申請を受け付けました。<br>管理者が確認してシフトに反映します。</p>
   </div>
 </div>
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
 
-let selectedDates = [];
+// 休暇種別一覧（管理者側index.htmlのLEAVE_TYPESと色・コードを揃えてある）
+const LEAVE_TYPE_LIST = [
+  {code:'off',        label:'公休希望',        desc:'通常の希望休（お休みにしたい日）',           bg:'#e2e8f0', color:'#475569'},
+  {code:'paid',        label:'有給',            desc:'有給休暇（1日）',                         bg:'#16a34a', color:'#fff'},
+  {code:'paid_am',     label:'AM有給',          desc:'午前のみの有給休暇（0.5日扱い）',           bg:'#4ade80', color:'#14532d'},
+  {code:'paid_pm',     label:'PM有給',          desc:'午後のみの有給休暇（0.5日扱い）',           bg:'#86efac', color:'#14532d'},
+  {code:'flex',        label:'フレックス休暇',   desc:'フレックス休暇（1日単位、半休は使えません）', bg:'#7c3aed', color:'#fff'},
+  {code:'child',       label:'子の看護休暇',     desc:'子の看護休暇（1日）',                     bg:'#d97706', color:'#fff'},
+  {code:'child_am',    label:'AM子の看護休暇',   desc:'午前のみの子の看護休暇（0.5日扱い）',       bg:'#fbbf24', color:'#78350f'},
+  {code:'child_pm',    label:'PM子の看護休暇',   desc:'午後のみの子の看護休暇（0.5日扱い）',       bg:'#fcd34d', color:'#78350f'},
+  {code:'bereave',     label:'慶弔休暇',         desc:'慶弔休暇（1日）',                         bg:'#be185d', color:'#fff'},
+  {code:'absence',     label:'欠勤',            desc:'欠勤（1日）',                             bg:'#dc2626', color:'#fff'},
+  {code:'absence_am',  label:'AM欠勤',          desc:'午前のみの欠勤（0.5日扱い）',               bg:'#f87171', color:'#7f1d1d'},
+  {code:'absence_pm',  label:'PM欠勤',          desc:'午後のみの欠勤（0.5日扱い）',               bg:'#fca5a5', color:'#7f1d1d'},
+];
+function currentTypeInfo(){ return LEAVE_TYPE_LIST.find(t=>t.code===currentType) || LEAVE_TYPE_LIST[0]; }
+
+let selections = {}; // {日付文字列: 種別コード} 日付ごとに個別に種類を持たせる
 let calYear, calMonth;
+let currentType = 'off';
+
+function renderTypeTabs(){
+  const wrap = document.getElementById('type-tabs');
+  wrap.innerHTML = LEAVE_TYPE_LIST.map(t =>
+    `<button type="button" class="type-tab${t.code===currentType?' on':''}" style="${t.code===currentType?`background:${t.bg};color:${t.color}`:''}" onclick="selectType('${t.code}')">${t.label}</button>`
+  ).join('');
+  const cur = currentTypeInfo();
+  document.getElementById('type-desc').textContent = cur.desc;
+  renderCurrentTypeBanner();
+}
+function renderCurrentTypeBanner(){
+  const cur = currentTypeInfo();
+  const el = document.getElementById('current-type-banner');
+  el.style.background = cur.bg + '22';
+  el.style.color = cur.color === '#fff' ? cur.bg : cur.color;
+  el.innerHTML = `<span class="dot" style="background:${cur.bg}"></span>今から選ぶ日は：<span style="font-size:14px">${cur.label}</span>　<span style="font-weight:400;font-size:11px">（すでに選んだ日には影響しません）</span>`;
+}
+function selectType(code){
+  currentType = code;
+  renderTypeTabs();
+}
 
 async function loadStaff(){
   try {
@@ -121,6 +201,7 @@ function init(){
   calYear = now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear();
   calMonth = (now.getMonth()+1) % 12;
   loadStaff();
+  renderTypeTabs();
   renderCal();
 }
 
@@ -128,7 +209,7 @@ function changeMonth(d){
   calMonth += d;
   if(calMonth > 11){ calMonth = 0; calYear++; }
   if(calMonth < 0){ calMonth = 11; calYear--; }
-  selectedDates = [];
+  selections = {};
   renderCal();
   updateSelectedList();
 }
@@ -147,45 +228,116 @@ function renderCal(){
     const dow = new Date(calYear,calMonth,d).getDay();
     const c = document.createElement('div');
     const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    c.className = 'cal-cell'+(dow===0?' sun':dow===6?' sat':'')+(selectedDates.includes(ds)?' selected':'');
+    c.className = 'cal-cell'+(dow===0?' sun':dow===6?' sat':'');
+    if(selections[ds]){
+      const t = LEAVE_TYPE_LIST.find(x=>x.code===selections[ds]) || LEAVE_TYPE_LIST[0];
+      c.style.background=t.bg; c.style.borderColor=t.bg; c.style.color=t.color;
+    }
     c.textContent = d;
     c.onclick = () => toggleDate(ds, c);
     grid.appendChild(c);
   }
 }
 
+// クリックした日付を、その時点で選んでいる種類でON/OFFする。
+// すでに別の種類で選択済みの日付をクリックした場合も、いったん解除する
+// （誤って上書きしないよう、種類を変えたいときは一度外してから選び直す仕様）
 function toggleDate(ds, el){
-  if(selectedDates.includes(ds)){ selectedDates = selectedDates.filter(d=>d!==ds); el.classList.remove('selected'); }
-  else { selectedDates.push(ds); el.classList.add('selected'); }
+  if(selections[ds]){
+    delete selections[ds];
+    el.style.background=''; el.style.borderColor=''; el.style.color='';
+  } else {
+    selections[ds] = currentType;
+    const cur = currentTypeInfo();
+    el.style.background=cur.bg; el.style.borderColor=cur.bg; el.style.color=cur.color;
+  }
   updateSelectedList();
+}
+
+function groupSelections(){
+  const groups = {};
+  Object.keys(selections).forEach(ds=>{
+    const t = selections[ds];
+    if(!groups[t]) groups[t]=[];
+    groups[t].push(ds);
+  });
+  return groups;
 }
 
 function updateSelectedList(){
   const el = document.getElementById('selected-list');
-  if(selectedDates.length === 0){ el.textContent = '希望休を選んでください'; return; }
-  const sorted = [...selectedDates].sort();
-  el.innerHTML = `選択中：<span>${sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、')}</span>（${sorted.length}日）`;
+  const groups = groupSelections();
+  const codes = Object.keys(groups);
+  if(codes.length === 0){ el.textContent = '希望日を選んでください（複数の種類を組み合わせて選べます）'; return; }
+  el.innerHTML = codes.map(code=>{
+    const t = LEAVE_TYPE_LIST.find(x=>x.code===code);
+    const sorted = [...groups[code]].sort();
+    const label = sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
+    return `<div style="margin-bottom:4px"><b style="color:${t.bg}">${t.label}</b>：${label}（${sorted.length}日）</div>`;
+  }).join('');
+}
+
+function showConfirm(){
+  const name = document.getElementById('staff-select').value;
+  if(!name){ alert('名前を選択してください'); return; }
+  if(Object.keys(selections).length === 0){ alert('希望日を選択してください'); return; }
+  const groups = groupSelections();
+  const memo = document.getElementById('memo').value;
+
+  document.getElementById('c-name').textContent = name;
+  document.getElementById('c-month').textContent = `${calYear}年${calMonth+1}月`;
+  document.getElementById('c-memo').textContent = memo || 'なし';
+
+  // 種別ごとにまとめて表示
+  const typeEl = document.getElementById('c-type');
+  const datesEl = document.getElementById('c-dates');
+  typeEl.innerHTML = Object.keys(groups).map(code=>{
+    const t = LEAVE_TYPE_LIST.find(x=>x.code===code);
+    return `<span class="confirm-type-badge" style="background:${t.bg};color:${t.color};margin-right:4px">${t.label}</span>`;
+  }).join('');
+  datesEl.innerHTML = Object.keys(groups).map(code=>{
+    const t = LEAVE_TYPE_LIST.find(x=>x.code===code);
+    const sorted = [...groups[code]].sort();
+    const label = sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
+    return `<div style="margin-bottom:4px"><b style="color:${t.bg}">${t.label}</b>：${label}</div>`;
+  }).join('');
+
+  document.getElementById('form-area').style.display = 'none';
+  document.getElementById('confirm-area').style.display = 'block';
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+function hideConfirm(){
+  document.getElementById('confirm-area').style.display = 'none';
+  document.getElementById('form-area').style.display = 'block';
 }
 
 async function submitRequest(){
   const name = document.getElementById('staff-select').value;
-  if(!name){ alert('名前を選択してください'); return; }
-  if(selectedDates.length === 0){ alert('希望休を選択してください'); return; }
-  const btn = document.getElementById('submit-btn');
+  const btn = document.getElementById('confirm-submit-btn');
   btn.disabled = true; btn.textContent = '送信中…';
   const month = `${calYear}年${calMonth+1}月`;
   const memo = document.getElementById('memo').value;
+  const groups = groupSelections();
+
   try {
-    await fetch(GAS_URL, {
-      method: 'POST', mode: 'no-cors',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({action:'kibouKyuu', name, month, dates: selectedDates.sort(), memo})
-    });
-    document.getElementById('form-area').style.display = 'none';
+    // 種別ごとに1件ずつ送信する（GAS側で行を分けて保存するため）
+    for(const code of Object.keys(groups)){
+      await fetch(GAS_URL, {
+        method: 'POST', mode: 'no-cors',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          action:'kibouKyuu', name, month,
+          type: code,
+          dates: [...groups[code]].sort(),
+          memo
+        })
+      });
+    }
+    document.getElementById('confirm-area').style.display = 'none';
     document.getElementById('success-area').style.display = 'block';
   } catch(e){
     alert('送信に失敗しました。もう一度お試しください。');
-    btn.disabled = false; btn.textContent = '送信する';
+    btn.disabled = false; btn.textContent = 'この内容で送信する';
   }
 }
 
