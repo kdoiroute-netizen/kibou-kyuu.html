@@ -206,7 +206,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="add-btn" onclick="openStaffModal()">＋ スタッフ追加</button>
       </div>
       <table class="staff-table">
-        <thead><tr><th>名前</th><th>性別</th><th>勤務形態</th><th>出勤可能曜日</th><th>操作</th></tr></thead>
+        <thead><tr><th>名前</th><th>職種</th><th>性別</th><th>勤務形態</th><th>出勤可能曜日</th><th>操作</th></tr></thead>
         <tbody id="staff-tbody"></tbody>
       </table>
     </div>
@@ -246,6 +246,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="f">女性</option><option value="m">男性</option>
       </select>
     </div>
+    <div><label class="form-label">職種</label>
+      <select class="form-select" id="s-job">
+        <option value="PT">PT（理学療法士）</option>
+        <option value="OT">OT（作業療法士）</option>
+        <option value="ST">ST（言語聴覚士）</option>
+        <option value="other">その他</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row2">
     <div><label class="form-label">勤務形態</label>
       <select class="form-select" id="s-type" onchange="onTypeChange()">
         <option value="full">固定シフト・常勤（土日祝休み）</option>
@@ -343,7 +353,7 @@ const LEAVE_TYPES = {
 function normName(n){ return (n||'').toString().trim().replace(/\u3000/g,' ').replace(/\s+/g,' '); }
 
 let staff = [];
-let rules = {0:{minF:1,minM:1,minTotal:0,required:[]},1:{minF:2,minM:1,minTotal:0,required:[]},2:{minF:2,minM:1,minTotal:0,required:[]},3:{minF:2,minM:1,minTotal:0,required:[]},4:{minF:2,minM:1,minTotal:0,required:[]},5:{minF:2,minM:1,minTotal:0,required:[]},6:{minF:1,minM:1,minTotal:0,required:[]}};
+let rules = {0:{minF:1,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},1:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},2:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},3:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},4:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},5:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},6:{minF:1,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]}};
 let shifts = {};
 let monthOffset = 0;
 let editingStaffId = null;
@@ -390,11 +400,12 @@ async function loadAll(){
         ...s,
         id: Number(s.id),
         type: s.type==='weekday' ? 'random' : s.type, // 旧データ互換
+        job: s.job || 'PT',
         days: Array.isArray(s.days) ? s.days.map(Number) : []
       }));
     }
     if(rulesRes.rules && rulesRes.rules.length > 0){
-      rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,minTotal:r.minTotal||0,required:r.required||[]}; });
+      rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,minTotal:r.minTotal||0,maxTotal:r.maxTotal||0,minST:r.minST||0,required:r.required||[]}; });
     }
     if(shiftsRes.shifts && shiftsRes.shifts.length > 0){
       shiftsRes.shifts.forEach(s => { setShift(Number(s.year),Number(s.month),Number(s.staffId),Number(s.day),s.value); });
@@ -497,14 +508,25 @@ function renderShift(){
   sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1)">出勤人数</td>`;
   const violations=[];
   days.forEach(({d,dow})=>{
-    let wF=0,wM=0;
-    staff.forEach(s=>{ if(getShift(y,m,s.id,d)==='work'){ if(s.gender==='f') wF++; else wM++; } });
+    let wF=0,wM=0,wST=0;
+    staff.forEach(s=>{
+      if(getShift(y,m,s.id,d)==='work'){
+        if(s.gender==='f') wF++; else wM++;
+        if((s.job||'PT')==='ST') wST++;
+      }
+    });
     const r=rules[dow];
+    const total=wF+wM;
+    const isSTShort=r.minST>0&&wST<r.minST;
+    const isShort=(wF<r.minF)||(wM<r.minM)||(r.minTotal&&total<r.minTotal)||isSTShort;
+    const isOver=r.maxTotal>0&&total>r.maxTotal;
     const hasWork=staff.some(s=>getShift(y,m,s.id,d)==='work');
     if(hasWork){
       if(wF<r.minF) violations.push(`${m+1}/${d}（${DAYS[dow]}）：女性${r.minF}名必要（現在${wF}名）`);
       if(wM<r.minM) violations.push(`${m+1}/${d}（${DAYS[dow]}）：男性${r.minM}名必要（現在${wM}名）`);
-      if(r.minTotal && (wF+wM)<r.minTotal) violations.push(`${m+1}/${d}（${DAYS[dow]}）：合計${r.minTotal}名必要（現在${wF+wM}名）`);
+      if(r.minTotal&&total<r.minTotal) violations.push(`${m+1}/${d}（${DAYS[dow]}）：合計${r.minTotal}名必要（現在${total}名）`);
+      if(isSTShort) violations.push(`${m+1}/${d}（${DAYS[dow]}）：ST${r.minST}名必要（現在${wST}名）`);
+      if(isOver) violations.push(`${m+1}/${d}（${DAYS[dow]}）：上限${r.maxTotal}名超過（現在${total}名）⚡`);
       r.required.forEach(rid=>{
         if(getShift(y,m,rid,d)!=='work'){
           const sm=staff.find(x=>x.id===rid);
@@ -512,17 +534,26 @@ function renderShift(){
         }
       });
     }
-    const total=wF+wM; const ok=(wF>=r.minF&&wM>=r.minM&&total>=(r.minTotal||0));
     const isTod=isThisMonth&&d===todayD.getDate();
-    const bg=isTod?'rgba(8,145,178,.4)':dow===6?'rgba(59,130,246,.3)':dow===0?'rgba(239,68,68,.3)':'rgba(255,255,255,.05)';
-    sumRow+=`<td style="background:${bg};text-align:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.08)"><div style="font-size:14px;font-weight:800;color:${total===0?'rgba(255,255,255,.3)':ok?'#86efac':'#fca5a5'}">${total||'―'}</div><div style="font-size:9px;color:rgba(255,255,255,.5)">女${wF} 男${wM}</div></td>`;
+    let cellBg;
+    if(isShort) cellBg='rgba(220,38,38,.55)';
+    else if(isOver) cellBg='rgba(217,119,6,.55)';
+    else cellBg=isTod?'rgba(8,145,178,.4)':dow===6?'rgba(59,130,246,.3)':dow===0?'rgba(239,68,68,.3)':'rgba(255,255,255,.05)';
+    const numColor=isShort?'#fecaca':isOver?'#fef3c7':'#86efac';
+    const icon=isShort?'▼':isOver?'▲':'';
+    const stLabel=wST>0?`<div style="font-size:9px;color:#c4b5fd">ST:${wST}</div>`:'';
+    sumRow+=`<td style="background:${cellBg};text-align:center;padding:4px 2px;border-right:1px solid rgba(255,255,255,.08)"><div style="font-size:14px;font-weight:800;color:${total===0?'rgba(255,255,255,.3)':numColor}">${total||'―'}${icon}</div><div style="font-size:9px;color:rgba(255,255,255,.6)">女${wF} 男${wM}</div>${stLabel}</td>`;
   });
   sumRow+='</tr>';
   body+=sumRow+'</tbody>';
 
   const vp=document.getElementById('viol-panel');
-  vp.innerHTML=violations.length>0?`<div class="viol-panel"><h4>⚠️ ルール違反 ${violations.length}件</h4><ul>${violations.map(v=>`<li>${v}</li>`).join('')}</ul></div>`:'';
-  document.getElementById('shift-table').innerHTML=hdr+body;
+  const shortViol=violations.filter(v=>!v.includes('⚡'));
+  const overViol=violations.filter(v=>v.includes('⚡')).map(v=>v.replace('⚡',''));
+  let vpHtml='';
+  if(shortViol.length>0) vpHtml+=`<div class="viol-panel"><h4>🔴 人数不足 ${shortViol.length}件</h4><ul>${shortViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
+  if(overViol.length>0) vpHtml+=`<div class="viol-panel" style="background:var(--yellow-light);border-color:#fcd34d"><h4 style="color:var(--yellow)">🟡 人数過多 ${overViol.length}件</h4><ul style="color:#78350f">${overViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
+  vp.innerHTML=vpHtml;
 }
 
 // その月の土日の日数を数える（ランダムシフトの休日数の基準に使う）
@@ -694,6 +725,8 @@ function saveShiftEdit(){ if(!editingShift) return; setShift(editingShift.y,edit
 function closeShiftModal(e){ if(e&&e.target!==document.getElementById('shift-overlay')) return; document.getElementById('shift-overlay').classList.remove('on'); editingShift=null; }
 
 // STAFF
+const JOB_LABELS = {PT:'PT',OT:'OT',ST:'ST',other:'その他'};
+const JOB_COLORS = {PT:'#0891b2',OT:'#16a34a',ST:'#7c3aed',other:'#6b7280'};
 function renderStaff(){
   document.getElementById('staff-tbody').innerHTML=staff.map((s,si)=>{
     const color=COLORS[(si+1)%COLORS.length]||COLORS[0];
@@ -702,7 +735,9 @@ function renderStaff(){
       : DAYS.map((dn,i)=>`<div class="day-chip${s.days.includes(i)?'':' off'}">${dn}</div>`).join('');
     const gBadge=s.gender==='f'?'<span class="badge badge-f">女性</span>':'<span class="badge badge-m">男性</span>';
     const tBadge=s.type==='full'?'<span class="badge badge-full">固定・常勤</span>':isRandomType(s.type)?'<span class="badge badge-random">ランダム</span>':'<span class="badge badge-short">固定・時短</span>';
-    return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
+    const job=s.job||'PT';
+    const jBadge=`<span class="badge" style="background:${JOB_COLORS[job]}22;color:${JOB_COLORS[job]}">${JOB_LABELS[job]||job}</span>`;
+    return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${jBadge}</td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
   }).join('');
 }
 
@@ -712,6 +747,7 @@ function openStaffModal(id){
   document.getElementById('staff-modal-title').textContent=s?'スタッフ編集':'スタッフ追加';
   document.getElementById('s-name').value=s?s.name:'';
   document.getElementById('s-gender').value=s?s.gender:'f';
+  document.getElementById('s-job').value=s?(s.job||'PT'):'PT';
   document.getElementById('s-type').value=s?s.type:'full';
   editingDays=s?[...s.days]:[1,2,3,4,5];
   renderDayToggles(); onTypeChange();
@@ -735,7 +771,7 @@ function onTypeChange(){
 async function saveStaff(){
   const name=document.getElementById('s-name').value.trim();
   if(!name){ showToast('❌ 氏名を入力してください'); return; }
-  const obj={name,gender:document.getElementById('s-gender').value,type:document.getElementById('s-type').value,days:[...editingDays].sort((a,b)=>a-b)};
+  const obj={name,gender:document.getElementById('s-gender').value,job:document.getElementById('s-job').value,type:document.getElementById('s-type').value,days:[...editingDays].sort((a,b)=>a-b)};
   if(editingStaffId){ const idx=staff.findIndex(s=>s.id===editingStaffId); staff[idx]={...staff[idx],...obj}; }
   else { const newId=Math.max(0,...staff.map(s=>s.id))+1; staff.push({id:newId,...obj}); }
   closeStaffModal(); renderStaff();
@@ -761,6 +797,8 @@ function renderRules(){
       <div class="rule-label">女性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minF}" id="rule-f-${dow}">
       <div class="rule-label">男性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minM}" id="rule-m-${dow}">
       <div class="rule-label">合計 最低人数</div><input class="rule-input" type="number" min="0" max="20" value="${r.minTotal||0}" id="rule-t-${dow}">
+      <div class="rule-label" style="color:#7c3aed">ST 最低人数</div><input class="rule-input" type="number" min="0" max="10" value="${r.minST||0}" id="rule-st-${dow}" style="border-color:#c4b5fd">
+      <div class="rule-label" style="color:#d97706">合計 上限人数<span style="font-size:9px;font-weight:400;margin-left:2px">（0=制限なし）</span></div><input class="rule-input" type="number" min="0" max="30" value="${r.maxTotal||0}" id="rule-max-${dow}" style="border-color:#fcd34d">
       <div class="rule-label">必須スタッフ</div>
       <select class="required-staff-select" id="rule-req-${dow}" multiple size="3">${reqOpts}</select>
     </div>`;
@@ -771,9 +809,11 @@ async function saveRules(){
     const minF=parseInt(document.getElementById(`rule-f-${dow}`)?.value||0);
     const minM=parseInt(document.getElementById(`rule-m-${dow}`)?.value||0);
     const minTotal=parseInt(document.getElementById(`rule-t-${dow}`)?.value||0);
+    const minST=parseInt(document.getElementById(`rule-st-${dow}`)?.value||0);
+    const maxTotal=parseInt(document.getElementById(`rule-max-${dow}`)?.value||0);
     const sel=document.getElementById(`rule-req-${dow}`);
     const required=sel?Array.from(sel.selectedOptions).map(o=>parseInt(o.value)):[];
-    rules[dow]={minF,minM,minTotal,required};
+    rules[dow]={minF,minM,minTotal,maxTotal,minST,required};
   });
   setSyncStatus('saving','保存中…');
   try {
