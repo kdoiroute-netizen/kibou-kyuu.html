@@ -546,6 +546,7 @@ function renderShift(){
   });
   sumRow+='</tr>';
   body+=sumRow+'</tbody>';
+  document.getElementById('shift-table').innerHTML = hdr + body;
 
   const vp=document.getElementById('viol-panel');
   const shortViol=violations.filter(v=>!v.includes('⚡'));
