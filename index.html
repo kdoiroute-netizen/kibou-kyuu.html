@@ -1099,6 +1099,7 @@ function applyKibou(name, dates, type){
   document.querySelector('.htab').click();
   renderShift();
   showToast(`✅ ${name}の${LEAVE_TYPES[code].label}をシフトに反映しました（${target.getMonth()+1}月）`);
+  saveShiftToSheet(); // 反映しただけで保存し忘れることがないよう、自動でスプレッドシートにも保存する
 }
 
 // ZANDAKA（休暇残日数）
