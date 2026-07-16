@@ -16,16 +16,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .label{font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;display:block}
 .select{width:100%;padding:12px;border:1.5px solid var(--border);border-radius:8px;font-size:15px;font-family:inherit;outline:none;background:#fff;color:var(--navy)}
 .select:focus{border-color:var(--teal)}
-
-/* 休暇種別タブ */
 .type-tabs{display:flex;flex-wrap:wrap;gap:6px}
 .type-tab{padding:8px 12px;border-radius:20px;border:1.5px solid var(--border);background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:var(--navy);font-family:inherit;transition:.15s}
 .type-tab.on{color:#fff;border-color:transparent}
 .type-desc{font-size:11px;color:var(--gray);margin-top:10px;line-height:1.5}
-
 .current-type-banner{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;font-size:13px;font-weight:700;margin-bottom:14px}
 .current-type-banner .dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-
 .cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:4px}
 .cal-day-label{text-align:center;font-size:11px;font-weight:700;color:var(--gray);padding:4px 0}
 .cal-day-label.sun{color:#ef4444}.cal-day-label.sat{color:#3b82f6}
@@ -43,8 +39,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .success .icon{font-size:60px;margin-bottom:16px}
 .success h2{font-size:20px;font-weight:800;margin-bottom:8px}
 .success p{font-size:14px;color:var(--gray)}
-
-/* 確認画面 */
 .confirm-area{display:none}
 .confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
 .confirm-row:last-child{border-bottom:none}
@@ -131,7 +125,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
 
-// 休暇種別一覧（管理者側index.htmlのLEAVE_TYPESと色・コードを揃えてある）
 const LEAVE_TYPE_LIST = [
   {code:'off',        label:'公休希望',        desc:'通常の希望休（お休みにしたい日）',           bg:'#e2e8f0', color:'#475569'},
   {code:'paid',        label:'有給',            desc:'有給休暇（1日）',                         bg:'#16a34a', color:'#fff'},
@@ -148,7 +141,15 @@ const LEAVE_TYPE_LIST = [
 ];
 function currentTypeInfo(){ return LEAVE_TYPE_LIST.find(t=>t.code===currentType) || LEAVE_TYPE_LIST[0]; }
 
-let selections = {}; // {日付文字列: 種別コード} 日付ごとに個別に種類を持たせる
+// "yyyy-MM-dd"形式の日付文字列を、常にローカルの日付として安全に解釈する
+function parseLocalDate(str){
+  if(!str) return new Date(NaN);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str.toString().trim());
+  if(!m) return new Date(str);
+  return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+}
+
+let selections = {};
 let calYear, calMonth;
 let currentType = 'off';
 
@@ -239,9 +240,6 @@ function renderCal(){
   }
 }
 
-// クリックした日付を、その時点で選んでいる種類でON/OFFする。
-// すでに別の種類で選択済みの日付をクリックした場合も、いったん解除する
-// （誤って上書きしないよう、種類を変えたいときは一度外してから選び直す仕様）
 function toggleDate(ds, el){
   if(selections[ds]){
     delete selections[ds];
@@ -272,7 +270,7 @@ function updateSelectedList(){
   el.innerHTML = codes.map(code=>{
     const t = LEAVE_TYPE_LIST.find(x=>x.code===code);
     const sorted = [...groups[code]].sort();
-    const label = sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
+    const label = sorted.map(d=>{ const dt=parseLocalDate(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
     return `<div style="margin-bottom:4px"><b style="color:${t.bg}">${t.label}</b>：${label}（${sorted.length}日）</div>`;
   }).join('');
 }
@@ -288,7 +286,6 @@ function showConfirm(){
   document.getElementById('c-month').textContent = `${calYear}年${calMonth+1}月`;
   document.getElementById('c-memo').textContent = memo || 'なし';
 
-  // 種別ごとにまとめて表示
   const typeEl = document.getElementById('c-type');
   const datesEl = document.getElementById('c-dates');
   typeEl.innerHTML = Object.keys(groups).map(code=>{
@@ -298,7 +295,7 @@ function showConfirm(){
   datesEl.innerHTML = Object.keys(groups).map(code=>{
     const t = LEAVE_TYPE_LIST.find(x=>x.code===code);
     const sorted = [...groups[code]].sort();
-    const label = sorted.map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
+    const label = sorted.map(d=>{ const dt=parseLocalDate(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
     return `<div style="margin-bottom:4px"><b style="color:${t.bg}">${t.label}</b>：${label}</div>`;
   }).join('');
 
@@ -320,7 +317,6 @@ async function submitRequest(){
   const groups = groupSelections();
 
   try {
-    // 種別ごとに1件ずつ送信する（GAS側で行を分けて保存するため）
     for(const code of Object.keys(groups)){
       await fetch(GAS_URL, {
         method: 'POST', mode: 'no-cors',
