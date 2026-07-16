@@ -243,12 +243,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="page" id="page-zandaka">
     <div class="card">
       <div class="sec-title"><span>⚙️</span>付与日数の設定</div>
-      <div class="form-row2" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
-        <div><label class="form-label">有給（日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-paid"><p class="modal-sub" style="margin-top:4px">入社6か月後に付与、以後は個人ごとに1年おきに更新</p></div>
+      <div class="form-row2" style="grid-template-columns:1fr 1fr 1fr 1fr;gap:10px">
+        <div><label class="form-label">有給 1年目の日数</label><input class="form-input" type="number" min="0" step="1" id="zd-paid-base"><p class="modal-sub" style="margin-top:4px">入社6か月後に付与</p></div>
+        <div><label class="form-label">有給 毎年の増加日数</label><input class="form-input" type="number" min="0" step="1" id="zd-paid-inc"><p class="modal-sub" style="margin-top:4px">2年目以降、1年ごとに加算（上限なし）</p></div>
         <div><label class="form-label">フレックス休暇（日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-flex"><p class="modal-sub" style="margin-top:4px">毎年1月〜12月（全員共通）</p></div>
         <div><label class="form-label">子の看護休暇（対象児童1人あたり・日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-child"><p class="modal-sub" style="margin-top:4px">毎年4月〜翌3月（全員共通）</p></div>
       </div>
-      <p class="modal-sub" style="margin-top:8px">子の看護休暇は「対象の子どもの人数（小学3年生以下）」×この日数で自動計算されます。入社日・対象児童数はスタッフ編集画面で設定してください。</p>
+      <p class="modal-sub" style="margin-top:8px">有給は付与から2年で未消化分が失効します（例：1年目分は2年目の間は繰り越して使え、3年目の付与と同時に消滅）。年5日の消化義務も自動でチェックします。子の看護休暇は「対象の子どもの人数（小学3年生以下）」×この日数で自動計算されます。入社日・対象児童数はスタッフ編集画面で設定してください。</p>
       <button class="add-btn" style="margin-top:10px" onclick="saveLeaveSettings()">💾 設定を保存</button>
     </div>
     <div class="card">
@@ -397,7 +398,7 @@ let editingShift = null;
 let selectedShiftValue = null;
 let editingDays = [];
 let holidays = {};
-let leaveSettings = {paidDays:10, flexDays:6, childDaysPerKid:3};
+let leaveSettings = {paidBaseDays:10, paidIncrement:1, flexDays:6, childDaysPerKid:3};
 
 function getNow(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+monthOffset); return d; }
 function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
@@ -1102,26 +1103,65 @@ function getCalendarYearRange(baseDate){
   const y = baseDate.getFullYear();
   return {start:new Date(y,0,1), end:new Date(y,11,31), label:`${y}年1月〜12月`};
 }
-// 有給：入社日の半年後に初回付与、以後は1年ごとに個人の起算日で更新
-function getPaidLeavePeriod(hireDateStr, baseDate){
+function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+
+// 有給：入社6か月後に初回付与、以後1年ごとに1日ずつ増加（上限なし）。
+// 各回の付与分は「付与から2年」で失効する（＝前回付与分は今回の付与と同時に消滅し、
+// 今回付与した分は次回・次々回の付与のタイミングで消滅する、という繰り返し）。
+// 消化は古い方（失効が近い方）から優先的に充当するFIFO方式。
+// 年5日消化義務は「直近の付与日からの消化日数」で判定する。
+function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, increment){
   if(!hireDateStr) return null;
   const hire = parseLocalDate(hireDateStr);
   if(isNaN(hire.getTime())) return null;
   const firstGrant = new Date(hire.getFullYear(), hire.getMonth()+6, hire.getDate());
-  if(baseDate < firstGrant) return {notYet:true, firstGrant};
-  let start = new Date(firstGrant);
-  while(true){
-    const next = new Date(start.getFullYear()+1, start.getMonth(), start.getDate());
-    if(next > baseDate) break;
-    start = next;
+  if(today < firstGrant) return {notYet:true, firstGrant};
+
+  // 付与イベントを列挙する
+  const grants = [];
+  let n=1;
+  let gDate = new Date(firstGrant);
+  while(gDate <= today){
+    grants.push({date:new Date(gDate), amount: baseDays + (n-1)*increment});
+    n++;
+    gDate = new Date(gDate.getFullYear()+1, gDate.getMonth(), gDate.getDate());
   }
-  const end = new Date(start.getFullYear()+1, start.getMonth(), start.getDate()-1);
-  return {start, end};
+  const lastGrant = grants[grants.length-1];
+
+  // 付与イベントと消化イベントを日付順に並べてシミュレーションする
+  const events = grants.map(g=>({date:g.date, type:'grant', amount:g.amount}));
+  paidUsages.forEach(u=> events.push({date:u.date, type:'use', amount:u.days}));
+  events.sort((a,b)=> a.date-b.date || (a.type==='grant'?-1:1));
+
+  let carry = 0;   // 前回付与分の残り（次の付与タイミングで失効する）
+  let current = 0; // 直近付与分の残り
+  let usedSinceLastGrant = 0; // 直近付与日からの消化日数（年5日ルールの判定用）
+
+  events.forEach(e=>{
+    if(e.type==='grant'){
+      carry = current; // 前回分はここでいったん繰り越し対象になり、次の付与で消滅する
+      current = e.amount;
+      usedSinceLastGrant = 0;
+    } else {
+      let amt = e.amount;
+      const fromCarry = Math.min(carry, amt); carry -= fromCarry; amt -= fromCarry;
+      const fromCurrent = Math.min(current, amt); current -= fromCurrent; amt -= fromCurrent;
+      usedSinceLastGrant += (fromCarry+fromCurrent);
+    }
+  });
+
+  return {
+    remain: carry + current,
+    carry, current,
+    usedSinceLastGrant,
+    lastGrant
+  };
 }
-function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+
 function saveLeaveSettings(){
   leaveSettings = {
-    paidDays: parseFloat(document.getElementById('zd-paid').value) || 0,
+    paidBaseDays: parseFloat(document.getElementById('zd-paid-base').value) || 0,
+    paidIncrement: parseFloat(document.getElementById('zd-paid-inc').value) || 0,
     flexDays: parseFloat(document.getElementById('zd-flex').value) || 0,
     childDaysPerKid: parseFloat(document.getElementById('zd-child').value) || 0
   };
@@ -1133,7 +1173,8 @@ function saveLeaveSettings(){
   }).catch(()=>{ setSyncStatus('error','保存失敗'); });
 }
 async function renderZandaka(){
-  document.getElementById('zd-paid').value = leaveSettings.paidDays;
+  document.getElementById('zd-paid-base').value = leaveSettings.paidBaseDays;
+  document.getElementById('zd-paid-inc').value = leaveSettings.paidIncrement;
   document.getElementById('zd-flex').value = leaveSettings.flexDays;
   document.getElementById('zd-child').value = leaveSettings.childDaysPerKid;
 
@@ -1141,17 +1182,14 @@ async function renderZandaka(){
   const childFY = getFiscalYearRange(now);
   const flexCY = getCalendarYearRange(now);
   document.getElementById('zd-period-note').textContent =
-    `フレックス休暇：${flexCY.label}／子の看護休暇：${childFY.label}／有給：入社日を基準にスタッフごとに異なります（下表に表示）`;
+    `フレックス休暇：${flexCY.label}／子の看護休暇：${childFY.label}／有給：入社日を基準にスタッフごとに異なります（下表に表示、付与から2年で失効）`;
 
   document.getElementById('zandaka-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--gray);font-size:13px;text-align:center;padding:16px">読み込み中…</td></tr>`;
 
-  // スタッフごとの有給の対象期間を先に計算しておく
-  const paidPeriods = {};
-  staff.forEach(s=> paidPeriods[s.id] = getPaidLeavePeriod(s.hireDate, now));
-
-  // 希望休の申請内容（未確定分も含む）から、休暇の種類ごとに消化日数を集計する
-  const used = {}; // {staffId: {paid:0, flex:0, child:0}}
-  staff.forEach(s=> used[s.id]={paid:0, flex:0, child:0});
+  // 希望休の申請内容（未確定分も含む）から集計する
+  const paidUsages = {}; // {staffId: [{date, days}, ...]}
+  const usedFlexChild = {}; // {staffId: {flex:0, child:0}}
+  staff.forEach(s=>{ paidUsages[s.id]=[]; usedFlexChild[s.id]={flex:0, child:0}; });
   try {
     const res = await gasGet('loadKibou');
     const list = res.kibou || [];
@@ -1167,19 +1205,18 @@ async function renderZandaka(){
       const perDay = LEAVE_TYPES[code].days;
       (k.dates||[]).forEach(ds=>{
         const dt=parseLocalDate(ds);
-        if(bucket==='flex'){
-          if(dt>=flexCY.start && dt<=flexCY.end) used[s.id].flex+=perDay;
+        if(bucket==='paid'){
+          paidUsages[s.id].push({date:dt, days:perDay});
+        } else if(bucket==='flex'){
+          if(dt>=flexCY.start && dt<=flexCY.end) usedFlexChild[s.id].flex+=perDay;
         } else if(bucket==='child'){
-          if(dt>=childFY.start && dt<=childFY.end) used[s.id].child+=perDay;
-        } else if(bucket==='paid'){
-          const p = paidPeriods[s.id];
-          if(p && !p.notYet && dt>=p.start && dt<=p.end) used[s.id].paid+=perDay;
+          if(dt>=childFY.start && dt<=childFY.end) usedFlexChild[s.id].child+=perDay;
         }
       });
     });
   } catch(e){ console.log('残日数集計に失敗しました', e); }
 
-  const cell = (usedDays, total)=>{
+  const simpleCell = (usedDays, total)=>{
     const remain = total - usedDays;
     const color = remain < 0 ? 'var(--red)' : remain === 0 ? 'var(--yellow)' : 'var(--navy)';
     return `<span style="font-weight:700;color:${color}">残${remain}</span><span style="color:var(--gray);font-size:11px"> ／ 消化${usedDays} ／ 付与${total}</span>`;
@@ -1188,20 +1225,34 @@ async function renderZandaka(){
   document.getElementById('zandaka-tbody').innerHTML = staff.map(s=>{
     const flexTotal = leaveSettings.flexDays;
     const childTotal = (s.kids||0) * leaveSettings.childDaysPerKid;
-    const p = paidPeriods[s.id];
+
     let paidCell;
-    if(!p){
+    if(!s.hireDate){
       paidCell = '<span style="color:var(--red);font-size:12px">入社日未設定</span>';
-    } else if(p.notYet){
-      paidCell = `<span style="color:var(--gray);font-size:12px">未付与（${fmtDate(p.firstGrant)}〜）</span>`;
     } else {
-      paidCell = cell(used[s.id].paid, leaveSettings.paidDays) + `<div style="font-size:10px;color:var(--gray2)">（${fmtDate(p.start)}〜${fmtDate(p.end)}）</div>`;
+      const b = computePaidLeaveBalance(s.hireDate, paidUsages[s.id], now, leaveSettings.paidBaseDays, leaveSettings.paidIncrement);
+      if(!b){
+        paidCell = '<span style="color:var(--red);font-size:12px">入社日未設定</span>';
+      } else if(b.notYet){
+        paidCell = `<span style="color:var(--gray);font-size:12px">未付与（${fmtDate(b.firstGrant)}〜）</span>`;
+      } else {
+        const remainColor = b.remain < 0 ? 'var(--red)' : b.remain === 0 ? 'var(--yellow)' : 'var(--navy)';
+        const carryText = b.carry > 0 ? `＋繰越${b.carry}` : '';
+        const complyOk = b.usedSinceLastGrant >= 5;
+        const complyText = complyOk
+          ? `<span style="color:var(--green);font-size:10px">✅年5日消化済み</span>`
+          : `<span style="color:var(--red);font-size:10px">⚠️年5日消化義務まであと${(5-b.usedSinceLastGrant)}日</span>`;
+        paidCell = `<span style="font-weight:700;color:${remainColor}">残${b.remain}</span><span style="color:var(--gray);font-size:11px"> ／ 今期消化${b.usedSinceLastGrant} ／ 今期付与${b.lastGrant.amount}${carryText}</span>`
+          + `<div style="font-size:10px;color:var(--gray2)">（直近付与日：${fmtDate(b.lastGrant.date)}）</div>`
+          + `<div style="margin-top:2px">${complyText}</div>`;
+      }
     }
+
     return `<tr>
       <td><strong>${s.name}</strong></td>
       <td>${paidCell}</td>
-      <td>${cell(used[s.id].flex, flexTotal)}</td>
-      <td>${cell(used[s.id].child, childTotal)}${s.kids?'':'　<span style="color:var(--gray2);font-size:11px">(対象児童0人)</span>'}</td>
+      <td>${simpleCell(usedFlexChild[s.id].flex, flexTotal)}</td>
+      <td>${simpleCell(usedFlexChild[s.id].child, childTotal)}${s.kids?'':'　<span style="color:var(--gray2);font-size:11px">(対象児童0人)</span>'}</td>
     </tr>`;
   }).join('');
 }
