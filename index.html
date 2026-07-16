@@ -92,12 +92,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
 .shift-table th:first-child{text-align:left;padding-left:12px;width:130px}
 .shift-table th.sat-h{background:#3b82f6}.shift-table th.sun-h{background:#ef4444}.shift-table th.today-h{background:var(--teal)}
+.shift-table th.holiday-h{background:#f59e0b}
 .th-date{font-size:14px;font-weight:800;line-height:1}.th-day{font-size:10px;opacity:.7;margin-top:2px}
 .shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px 2px;vertical-align:middle;height:56px;width:34px}.shift-table tr{height:56px}
 .shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px}
 .shift-table tr:hover td{background:#fafbfd}
 .shift-table td.sat-col{background:#f0f4ff}.shift-table td.sun-col{background:#fff5f5}
 .shift-table td.today-col{background:#f0fafb}.shift-table td.off-col{background:#f8f9fa}
+.shift-table td.holiday-col{background:#fffbeb}
 .shift-cell-btn{width:100%;height:34px;border-radius:6px;border:none;font-size:11px;font-weight:700;cursor:pointer;transition:.1s;font-family:inherit}
 .shift-cell-btn:hover{filter:brightness(.92)}
 .viol-panel{background:var(--red-light);border:1.5px solid #fca5a5;border-radius:10px;padding:14px 16px;margin-bottom:16px}
@@ -360,6 +362,7 @@ let editingStaffId = null;
 let editingShift = null;
 let selectedShiftValue = null;
 let editingDays = [];
+let holidays = {};
 
 function getNow(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+monthOffset); return d; }
 function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
@@ -370,6 +373,7 @@ function getShift(y,m,sid,d){ return shifts[getShiftKey(y,m)]?.[sid]?.[d]??null;
 function setShift(y,m,sid,d,val){ const k=getShiftKey(y,m); if(!shifts[k]) shifts[k]={}; if(!shifts[k][sid]) shifts[k][sid]={}; shifts[k][sid][d]=val; }
 function isFixedType(t){ return t==='full'||t==='short16'||t==='short17'; }
 function isRandomType(t){ return t==='random'||t==='weekday'; } // weekdayは旧データ互換
+function dateStr(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
 
 // SYNC STATUS
 function setSyncStatus(status, msg){
@@ -388,12 +392,23 @@ async function gasPost(data){
   await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 }
 
+// 日本の祝日データを取得する（表示の色分け専用。人数ルールには影響させない）
+async function loadHolidays(){
+  try {
+    const res = await fetch('https://holidays-jp.github.io/api/v1/date.json');
+    holidays = await res.json();
+  } catch(e){
+    console.log('祝日データの取得に失敗しました', e);
+    holidays = {};
+  }
+}
+
 // LOAD ALL
 async function loadAll(){
   document.getElementById('loading-overlay').classList.add('on');
   try {
     const [staffRes, shiftsRes, rulesRes] = await Promise.all([
-      gasGet('loadStaff'), gasGet('loadShifts'), gasGet('loadRules')
+      gasGet('loadStaff'), gasGet('loadShifts'), gasGet('loadRules'), loadHolidays()
     ]);
     if(staffRes.staff && staffRes.staff.length > 0){
       staff = staffRes.staff.map(s=>({
@@ -422,10 +437,12 @@ async function loadAll(){
 
 function renderLegend(){
   const items = ['work','off','paid','flex','child','bereave','absence'];
-  document.getElementById('legend').innerHTML = items.map(code=>{
+  let html = items.map(code=>{
     const lt=LEAVE_TYPES[code];
     return `<div class="legend-item"><div class="legend-dot" style="background:${lt.bg};border:1px solid var(--border)"></div>${lt.label}</div>`;
   }).join('');
+  html += `<div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>祝日</div>`;
+  document.getElementById('legend').innerHTML = html;
 }
 
 // SAVE STAFF
@@ -483,8 +500,11 @@ function renderShift(){
   let hdr='<thead><tr><th>スタッフ</th>';
   days.forEach(({d,dow})=>{
     const isTod=isThisMonth&&d===todayD.getDate();
-    const cls=isTod?'today-h':dow===6?'sat-h':dow===0?'sun-h':'';
-    hdr+=`<th class="${cls}"><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div></th>`;
+    const holidayName=holidays[dateStr(y,m,d)];
+    let cls=isTod?'today-h':dow===6?'sat-h':dow===0?'sun-h':'';
+    if(holidayName && !isTod) cls+=' holiday-h';
+    const titleAttr=holidayName?` title="${holidayName}"`:'';
+    hdr+=`<th class="${cls}"${titleAttr}><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div></th>`;
   });
   hdr+='</tr></thead>';
 
@@ -496,8 +516,11 @@ function renderShift(){
       const isTod=isThisMonth&&d===todayD.getDate();
       const val=getShift(y,m,s.id,d)||'off';
       const lt=LEAVE_TYPES[val]||LEAVE_TYPES.off;
+      const holidayName=holidays[dateStr(y,m,d)];
       let colCls=isTod?'today-col':dow===6?'sat-col':dow===0?'sun-col':'';
-      const title = val==='work' ? (TYPE_MAP[s.type]?.time||'') : lt.label;
+      if(holidayName && !isTod) colCls+=' holiday-col';
+      let title = val==='work' ? (TYPE_MAP[s.type]?.time||'') : lt.label;
+      if(holidayName) title += `／祝日:${holidayName}`;
       row+=`<td class="${colCls}"><button class="shift-cell-btn" style="background:${lt.bg};color:${lt.color}" onclick="openShiftModal(${s.id},${d})" title="${title}">${lt.short}</button></td>`;
     });
     row+='</tr>'; body+=row;
@@ -589,6 +612,8 @@ function countWorkTotal(y,m,d){ return staff.filter(s=>getShift(y,m,s.id,d)==='w
 
 // 人数不足の日を、ランダムシフトスタッフの「公休」を別日と入れ替えることで補う
 // （希望休や特別休暇が入っている日、固定シフトの土日は動かさない）
+// ※この入れ替えは対象スタッフの「基本の出勤曜日」に関係なく行われるため、
+//   祝日などで人数が足りない場合は基本の出勤曜日以外の日にも出勤させることができる。
 function fixShortages(y,m,dim){
   for(let d=1;d<=dim;d++){
     const dow=new Date(y,m,d).getDay();
@@ -676,10 +701,30 @@ async function generateShift(){
         const lt=LEAVE_TYPES[days[dStr]];
         if(lt && lt.days===1) fullLeaveCount++;
       });
-      // 月の休日数 ＝ その月の土日の日数 ＋ 1（すでに取得済みの全休の特別休暇分は差し引く）
-      const quota = Math.max(0, satSun+1-fullLeaveCount);
+
+      // 基本の出勤曜日（未設定の場合は旧データ互換で全曜日とみなす）
+      const availDows = (s.days && s.days.length>0) ? s.days : [0,1,2,3,4,5,6];
+
+      // 基本の出勤曜日ではない日は、まず自動的に公休にする
+      let autoOffCount=0;
+      for(let d=1;d<=dim;d++){
+        if(reservedDays.has(d)) continue; // 希望休・特別休暇はそのまま
+        const dow=new Date(y,m,d).getDay();
+        if(!availDows.includes(dow)){
+          setShift(y,m,s.id,d,'off');
+          autoOffCount++;
+        }
+      }
+
+      // 月の休日数（土日の日数＋1）に届いていない分だけ、基本の出勤曜日の中から追加で休みを均等に割り振る
+      const quota = Math.max(0, satSun+1-fullLeaveCount-autoOffCount);
       const candidateDays=[];
-      for(let d=1;d<=dim;d++){ if(!reservedDays.has(d)) candidateDays.push(d); }
+      for(let d=1;d<=dim;d++){
+        if(reservedDays.has(d)) continue;
+        const dow=new Date(y,m,d).getDay();
+        if(!availDows.includes(dow)) continue; // 既にoff済み
+        candidateDays.push(d);
+      }
       const offDays = pickEvenlySpaced(candidateDays, quota);
       offDays.forEach(d=> setShift(y,m,s.id,d,'off'));
     }
@@ -694,7 +739,7 @@ async function generateShift(){
     });
   }
 
-  // 人数不足を、ランダムシフトの休日入れ替えで調整
+  // 人数不足を、ランダムシフトの休日入れ替えで調整（基本の出勤曜日以外にも出勤させることがある）
   fixShortages(y,m,dim);
 
   renderShift();
@@ -731,9 +776,8 @@ const JOB_COLORS = {PT:'#0891b2',OT:'#16a34a',ST:'#7c3aed',other:'#6b7280'};
 function renderStaff(){
   document.getElementById('staff-tbody').innerHTML=staff.map((s,si)=>{
     const color=COLORS[(si+1)%COLORS.length]||COLORS[0];
-    const dayChips=isRandomType(s.type)
-      ? '<span style="font-size:11px;color:var(--gray)">全曜日</span>'
-      : DAYS.map((dn,i)=>`<div class="day-chip${s.days.includes(i)?'':' off'}">${dn}</div>`).join('');
+    const dayChips=DAYS.map((dn,i)=>`<div class="day-chip${s.days.includes(i)?'':' off'}">${dn}</div>`).join('')
+      + (isRandomType(s.type) ? '<span style="font-size:10px;color:var(--gray);margin-left:4px;align-self:center">（基本）</span>' : '');
     const gBadge=s.gender==='f'?'<span class="badge badge-f">女性</span>':'<span class="badge badge-m">男性</span>';
     const tBadge=s.type==='full'?'<span class="badge badge-full">固定・常勤</span>':isRandomType(s.type)?'<span class="badge badge-random">ランダム</span>':'<span class="badge badge-short">固定・時短</span>';
     const job=s.job||'PT';
@@ -750,8 +794,9 @@ function openStaffModal(id){
   document.getElementById('s-gender').value=s?s.gender:'f';
   document.getElementById('s-job').value=s?(s.job||'PT'):'PT';
   document.getElementById('s-type').value=s?s.type:'full';
-  editingDays=s?[...s.days]:[1,2,3,4,5];
-  renderDayToggles(); onTypeChange();
+  editingDays = s ? [...s.days] : [1,2,3,4,5];
+  renderDayToggles();
+  updateRandomNote();
   document.getElementById('staff-del-btn').style.display=s?'block':'none';
   document.getElementById('staff-overlay').classList.add('on');
 }
@@ -759,15 +804,17 @@ function renderDayToggles(){
   document.getElementById('day-toggles').innerHTML=DAYS.map((dn,i)=>`<button class="day-toggle${editingDays.includes(i)?' on':''}" onclick="toggleDay(${i},this)">${dn}</button>`).join('');
 }
 function toggleDay(i,btn){ if(editingDays.includes(i)) editingDays=editingDays.filter(d=>d!==i); else editingDays.push(i); btn.classList.toggle('on'); }
-function onTypeChange(){
+function updateRandomNote(){
   const t=document.getElementById('s-type').value;
   const isRandom = t==='random';
-  document.getElementById('day-toggles-label').style.display = isRandom?'none':'block';
-  document.getElementById('day-toggles').style.display = isRandom?'none':'flex';
   document.getElementById('random-note').style.display = isRandom?'block':'none';
-  if(isRandom) editingDays=[0,1,2,3,4,5,6];
-  else editingDays=[1,2,3,4,5];
+}
+// 勤務形態をユーザーが変更したときだけ、曜日選択のデフォルトを種別に応じて設定し直す
+function onTypeChange(){
+  const t=document.getElementById('s-type').value;
+  editingDays = (t==='random') ? [0,1,2,3,4,5,6] : [1,2,3,4,5];
   renderDayToggles();
+  updateRandomNote();
 }
 async function saveStaff(){
   const name=document.getElementById('s-name').value.trim();
