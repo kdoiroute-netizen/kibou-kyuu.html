@@ -630,7 +630,9 @@ function renderShift(){
   });
   sumRow+='</tr>';
   body+=sumRow+'</tbody>';
-  document.getElementById('shift-table').innerHTML = hdr + body;
+  const tableEl = document.getElementById('shift-table');
+  tableEl.innerHTML = hdr + body;
+  tableEl.style.minWidth = (130 + dim*34) + 'px'; // 日数分の幅を必ず確保し、横スクロールで見せる（文字が潰れるのを防ぐ）
 
   const vp=document.getElementById('viol-panel');
   const shortViol=violations.filter(v=>!v.includes('⚡'));
@@ -675,20 +677,21 @@ function countWorkTotal(y,m,d){ return staff.filter(s=>getShift(y,m,s.id,d)==='w
 // （希望休や特別休暇が入っている日、固定シフトの土日は動かさない）
 // ※この入れ替えは対象スタッフの「基本の出勤曜日」に関係なく行われるため、
 //   祝日などで人数が足りない場合は基本の出勤曜日以外の日にも出勤させることができる。
-function fixShortages(y,m,dim){
+function fixShortages(y,m,dim,kibouMap){
   for(let d=1;d<=dim;d++){
     const dow=new Date(y,m,d).getDay();
     const r=rules[dow];
     let guard=0;
-    while(countWorkGender(y,m,d,'f')<r.minF && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'f')) break; }
+    while(countWorkGender(y,m,d,'f')<r.minF && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'f',kibouMap)) break; }
     guard=0;
-    while(countWorkGender(y,m,d,'m')<r.minM && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'m')) break; }
+    while(countWorkGender(y,m,d,'m')<r.minM && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'m',kibouMap)) break; }
     guard=0;
-    while(r.minTotal && countWorkTotal(y,m,d)<r.minTotal && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,null)) break; }
+    while(r.minTotal && countWorkTotal(y,m,d)<r.minTotal && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,null,kibouMap)) break; }
   }
 }
-function swapInRandomStaff(y,m,d,dim,genderFilter){
-  const pool=staff.filter(s=>isRandomType(s.type) && getShift(y,m,s.id,d)==='off' && (!genderFilter||s.gender===genderFilter));
+function swapInRandomStaff(y,m,d,dim,genderFilter,kibouMap){
+  // 希望休・特別休暇でその日が確保されているスタッフは、人数調整の対象から除外する
+  const pool=staff.filter(s=>isRandomType(s.type) && getShift(y,m,s.id,d)==='off' && !(kibouMap[s.id] && kibouMap[s.id][d]) && (!genderFilter||s.gender===genderFilter));
   for(const s of pool){
     for(let d2=1;d2<=dim;d2++){
       if(d2===d) continue;
@@ -791,17 +794,18 @@ async function generateShift(){
     }
   });
 
-  // 必須スタッフは強制出勤（休暇が入っている日は除く）
+  // 必須スタッフは強制出勤（希望休・特別休暇が入っている日は上書きしない）
   for(let d=1;d<=dim;d++){
     const dow=new Date(y,m,d).getDay();
     const r=rules[dow];
     (r.required||[]).forEach(rid=>{
-      if(getShift(y,m,rid,d)==='off') setShift(y,m,rid,d,'work');
+      const isReserved = kibouMap[rid] && kibouMap[rid][d];
+      if(!isReserved && getShift(y,m,rid,d)==='off') setShift(y,m,rid,d,'work');
     });
   }
 
-  // 人数不足を、ランダムシフトの休日入れ替えで調整（基本の出勤曜日以外にも出勤させることがある）
-  fixShortages(y,m,dim);
+  // 人数不足を、ランダムシフトの休日入れ替えで調整（基本の出勤曜日以外にも出勤させることがある。希望休の日は対象外）
+  fixShortages(y,m,dim,kibouMap);
 
   renderShift();
   showToast('✅ シフトを自動生成しました');
