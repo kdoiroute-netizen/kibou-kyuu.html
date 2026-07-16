@@ -409,6 +409,15 @@ function setShift(y,m,sid,d,val){ const k=getShiftKey(y,m); if(!shifts[k]) shift
 function isFixedType(t){ return t==='full'||t==='short16'||t==='short17'; }
 function isRandomType(t){ return t==='random'||t==='weekday'; } // weekdayは旧データ互換
 function dateStr(y,m,d){ return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`; }
+// "yyyy-MM-dd"形式の日付文字列を、常にローカルの日付として解釈する。
+// new Date("yyyy-MM-dd") は環境（パソコンのタイムゾーン設定）によってはUTCとして解釈され、
+// 1日ズレて表示・集計されることがあるため、必ずこの関数を経由する。
+function parseLocalDate(str){
+  if(!str) return new Date(NaN);
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(str.toString().trim());
+  if(!m) return new Date(str);
+  return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+}
 
 // SYNC STATUS
 function setSyncStatus(status, msg){
@@ -708,7 +717,7 @@ async function generateShift(){
       const typeCode = (k.type && LEAVE_TYPES[k.type]) ? k.type : 'off';
       if(!kibouMap[s.id]) kibouMap[s.id]={};
       (k.dates||[]).forEach(ds=>{
-        const dt=new Date(ds);
+        const dt=parseLocalDate(ds);
         if(dt.getFullYear()===y&&dt.getMonth()===m) kibouMap[s.id][dt.getDate()]=typeCode;
       });
     });
@@ -930,7 +939,7 @@ async function loadKibou(){
     document.getElementById('kibou-list').innerHTML=sorted.map((k)=>{
       const code=(k.type && LEAVE_TYPES[k.type])?k.type:'off';
       const lt=LEAVE_TYPES[code];
-      const dates=(k.dates||[]).map(d=>{ const dt=new Date(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
+      const dates=(k.dates||[]).map(d=>{ const dt=parseLocalDate(d); return `${dt.getMonth()+1}/${dt.getDate()}`; }).join('、');
       const kJson=JSON.stringify(k).replace(/"/g,'&quot;');
       return `<div class="kibou-item">
         <div style="flex:1"><span style="color:var(--gray);font-size:11px">${k.month||''}</span>　<span style="background:${lt.bg};color:${lt.color};padding:1px 8px;border-radius:10px;font-size:11px;font-weight:700">${lt.label}</span><br><strong>${k.name}</strong>　対象日：<span style="color:var(--red);font-weight:700">${dates}</span>${k.memo?'　備考：'+k.memo:''}</div>
@@ -956,7 +965,7 @@ function openKibouModal(k){
   kibouEditSelections = {};
   (k.dates||[]).forEach(ds=>{ kibouEditSelections[ds]=true; });
   if(k.dates && k.dates[0]){
-    const dt=new Date(k.dates[0]);
+    const dt=parseLocalDate(k.dates[0]);
     kibouCalY=dt.getFullYear(); kibouCalM=dt.getMonth();
   } else {
     const now=new Date(); kibouCalY=now.getFullYear(); kibouCalM=now.getMonth();
@@ -1019,7 +1028,7 @@ function updateKibouSelectedSummary(){
   const el=document.getElementById('kibou-selected-summary');
   if(keys.length===0){ el.textContent='日付を選択してください'; return; }
   const lt=LEAVE_TYPES[kibouEditType]||LEAVE_TYPES.off;
-  el.innerHTML=`<b style="color:${lt.bg}">${lt.label}</b>：${keys.map(d=>{const dt=new Date(d);return `${dt.getMonth()+1}/${dt.getDate()}`;}).join('、')}（${keys.length}日）`;
+  el.innerHTML=`<b style="color:${lt.bg}">${lt.label}</b>：${keys.map(d=>{const dt=parseLocalDate(d);return `${dt.getMonth()+1}/${dt.getDate()}`;}).join('、')}（${keys.length}日）`;
 }
 async function saveKibouEdit(){
   if(!editingKibou) return;
@@ -1068,10 +1077,10 @@ function applyKibou(name, dates, type){
   if(!dates || dates.length===0) return;
   const code=(type && LEAVE_TYPES[type])?type:'off';
   dates.forEach(ds=>{
-    const dt=new Date(ds);
+    const dt=parseLocalDate(ds);
     setShift(dt.getFullYear(),dt.getMonth(),s.id,dt.getDate(),code);
   });
-  const target=new Date(dates[0]);
+  const target=parseLocalDate(dates[0]);
   const base=new Date(); base.setDate(1);
   monthOffset=(target.getFullYear()-base.getFullYear())*12+(target.getMonth()-base.getMonth());
   document.querySelector('.htab').click();
@@ -1096,7 +1105,7 @@ function getCalendarYearRange(baseDate){
 // 有給：入社日の半年後に初回付与、以後は1年ごとに個人の起算日で更新
 function getPaidLeavePeriod(hireDateStr, baseDate){
   if(!hireDateStr) return null;
-  const hire = new Date(hireDateStr);
+  const hire = parseLocalDate(hireDateStr);
   if(isNaN(hire.getTime())) return null;
   const firstGrant = new Date(hire.getFullYear(), hire.getMonth()+6, hire.getDate());
   if(baseDate < firstGrant) return {notYet:true, firstGrant};
@@ -1157,7 +1166,7 @@ async function renderZandaka(){
       if(!bucket) return;
       const perDay = LEAVE_TYPES[code].days;
       (k.dates||[]).forEach(ds=>{
-        const dt=new Date(ds);
+        const dt=parseLocalDate(ds);
         if(bucket==='flex'){
           if(dt>=flexCY.start && dt<=flexCY.end) used[s.id].flex+=perDay;
         } else if(bucket==='child'){
