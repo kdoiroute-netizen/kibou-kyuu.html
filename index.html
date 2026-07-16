@@ -94,12 +94,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .shift-wrap{overflow-x:auto;border-radius:12px;box-shadow:var(--shadow);overflow-y:visible}
 .shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px;table-layout:fixed}
 .shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
-.shift-table th:first-child{text-align:left;padding-left:12px;width:130px}
+.shift-table th:first-child{text-align:left;padding-left:12px;width:130px;position:sticky;left:0;z-index:11;background:var(--navy)}
 .shift-table th.sat-h{background:#3b82f6}.shift-table th.sun-h{background:#ef4444}.shift-table th.today-h{background:var(--teal)}
 .shift-table th.holiday-h{background:#f59e0b}
 .th-date{font-size:14px;font-weight:800;line-height:1}.th-day{font-size:10px;opacity:.7;margin-top:2px}
 .shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px 2px;vertical-align:middle;height:56px;width:34px}.shift-table tr{height:56px}
-.shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px}
+.shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px;position:sticky;left:0;z-index:1;background:#fff}
+.shift-table tr:hover td:first-child{background:#fafbfd}
 .shift-table tr:hover td{background:#fafbfd}
 .shift-table td.sat-col{background:#f0f4ff}.shift-table td.sun-col{background:#fff5f5}
 .shift-table td.today-col{background:#f0fafb}.shift-table td.off-col{background:#f8f9fa}
@@ -588,7 +589,7 @@ function renderShift(){
 
   // 集計行
   let sumRow='<tr style="background:var(--navy)">';
-  sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1)">出勤人数</td>`;
+  sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1);background:var(--navy);position:sticky;left:0;z-index:1">出勤人数</td>`;
   const violations=[];
   days.forEach(({d,dow})=>{
     let wF=0,wM=0,wST=0;
