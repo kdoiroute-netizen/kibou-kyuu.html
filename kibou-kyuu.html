@@ -68,9 +68,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="card">
       <label class="label">あなたの名前</label>
       <div class="loading-msg" id="staff-loading"><div class="spinner"></div>スタッフ情報を読み込み中…</div>
-      <select class="select" id="staff-select" style="display:none">
+      <select class="select" id="staff-select" style="display:none" onchange="renderMyBalance()">
         <option value="">-- 選択してください --</option>
       </select>
+    </div>
+    <div class="card" id="my-balance-card" style="display:none">
+      <label class="label">🌴 あなたの休暇残日数</label>
+      <div id="my-balance-content" style="font-size:13px;line-height:1.9;color:var(--navy)"></div>
     </div>
     <div class="card">
       <label class="label">休暇の種類</label>
@@ -174,14 +178,21 @@ function selectType(code){
   renderTypeTabs();
 }
 
+let allStaff = [];
+let leaveSettings = {paidBaseDays:10, paidIncrement:1, flexDays:6, childDaysPerKid:3};
+let kibouListCache = [];
+const HALF_DAY_CODES = ['paid_am','paid_pm','child_am','child_pm','absence_am','absence_pm'];
+function dayWeight(code){ return HALF_DAY_CODES.includes(code) ? 0.5 : 1; }
+
 async function loadStaff(){
   try {
     const res = await fetch(`${GAS_URL}?action=loadStaff`);
     const data = await res.json();
+    allStaff = data.staff || [];
     const sel = document.getElementById('staff-select');
     sel.innerHTML = '<option value="">-- 選択してください --</option>';
-    if(data.staff && data.staff.length > 0){
-      data.staff.forEach(s => {
+    if(allStaff.length > 0){
+      allStaff.forEach(s => {
         const o = document.createElement('option');
         o.value = s.name; o.textContent = s.name;
         sel.appendChild(o);
@@ -197,11 +208,149 @@ async function loadStaff(){
   document.getElementById('staff-select').style.display = 'block';
 }
 
+async function loadLeaveSettings(){
+  try {
+    const res = await fetch(`${GAS_URL}?action=loadLeaveSettings`);
+    const data = await res.json();
+    if(data.leaveSettings) leaveSettings = {...leaveSettings, ...data.leaveSettings};
+  } catch(e){ console.log('休暇設定の取得に失敗しました', e); }
+}
+
+async function loadKibouCache(){
+  try {
+    const res = await fetch(`${GAS_URL}?action=loadKibou`);
+    const data = await res.json();
+    kibouListCache = data.kibou || [];
+  } catch(e){ console.log('希望休一覧の取得に失敗しました', e); }
+}
+
+// 子の看護休暇：4月始まり〜翌3月末
+function getFiscalYearRange(baseDate){
+  const y = baseDate.getFullYear();
+  const startY = baseDate.getMonth() >= 3 ? y : y - 1;
+  return {start:new Date(startY,3,1), end:new Date(startY+1,2,31)};
+}
+// フレックス休暇：1月始まり〜12月末
+function getCalendarYearRange(baseDate){
+  const y = baseDate.getFullYear();
+  return {start:new Date(y,0,1), end:new Date(y,11,31)};
+}
+function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+
+// 有給：入社6か月後に初回付与、以後1年ごとに1日ずつ増加（上限なし）。付与から2年で失効。FIFOで消化。
+function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, increment){
+  if(!hireDateStr) return null;
+  const hire = parseLocalDate(hireDateStr);
+  if(isNaN(hire.getTime())) return null;
+  const firstGrant = new Date(hire.getFullYear(), hire.getMonth()+6, hire.getDate());
+  if(today < firstGrant) return {notYet:true, firstGrant};
+  const grants = [];
+  let n=1;
+  let gDate = new Date(firstGrant);
+  while(gDate <= today){
+    grants.push({date:new Date(gDate), amount: baseDays + (n-1)*increment});
+    n++;
+    gDate = new Date(gDate.getFullYear()+1, gDate.getMonth(), gDate.getDate());
+  }
+  const lastGrant = grants[grants.length-1];
+  const events = grants.map(g=>({date:g.date, type:'grant', amount:g.amount}));
+  paidUsages.forEach(u=> events.push({date:u.date, type:'use', amount:u.days}));
+  events.sort((a,b)=> a.date-b.date || (a.type==='grant'?-1:1));
+  let carry=0, current=0, usedSinceLastGrant=0;
+  events.forEach(e=>{
+    if(e.type==='grant'){ carry=current; current=e.amount; usedSinceLastGrant=0; }
+    else {
+      let amt=e.amount;
+      const fromCarry=Math.min(carry,amt); carry-=fromCarry; amt-=fromCarry;
+      const fromCurrent=Math.min(current,amt); current-=fromCurrent; amt-=fromCurrent;
+      usedSinceLastGrant += (fromCarry+fromCurrent);
+    }
+  });
+  return {remain:carry+current, carry, current, usedSinceLastGrant, lastGrant};
+}
+
+async function renderMyBalance(){
+  const name = document.getElementById('staff-select').value;
+  const card = document.getElementById('my-balance-card');
+  const box = document.getElementById('my-balance-content');
+  if(!name){ card.style.display='none'; return; }
+  card.style.display='block';
+  box.innerHTML = '読み込み中…';
+
+  // 選択のたびに最新のデータを取り直す（読み込みタイミングのズレを防ぐため）
+  await Promise.all([loadLeaveSettings(), loadKibouCache()]);
+  if(allStaff.length===0){
+    try { const res=await fetch(`${GAS_URL}?action=loadStaff`); const data=await res.json(); allStaff=data.staff||[]; } catch(e){}
+  }
+
+  const s = allStaff.find(x=> (x.name||'').toString().trim()===name.toString().trim());
+  if(!s){ box.innerHTML = '<span style="color:var(--red)">スタッフ情報が見つかりませんでした</span>'; return; }
+
+  const now = new Date();
+  const childFY = getFiscalYearRange(now);
+  const flexCY = getCalendarYearRange(now);
+
+  let usedFlex=0, usedChild=0;
+  const paidUsages=[];
+  kibouListCache.forEach(k=>{
+    if((k.name||'').toString().trim() !== name.toString().trim()) return;
+    const code = k.type || 'off';
+    let bucket=null;
+    if(code==='paid'||code==='paid_am'||code==='paid_pm') bucket='paid';
+    else if(code==='flex') bucket='flex';
+    else if(code==='child'||code==='child_am'||code==='child_pm') bucket='child';
+    if(!bucket) return;
+    const perDay = dayWeight(code);
+    (k.dates||[]).forEach(ds=>{
+      const dt=parseLocalDate(ds);
+      if(bucket==='paid') paidUsages.push({date:dt, days:perDay});
+      else if(bucket==='flex'){ if(dt>=flexCY.start && dt<=flexCY.end) usedFlex+=perDay; }
+      else if(bucket==='child'){ if(dt>=childFY.start && dt<=childFY.end) usedChild+=perDay; }
+    });
+  });
+  usedFlex += Number(s.manualFlexUsed)||0;
+  usedChild += Number(s.manualChildUsed)||0;
+  if(Number(s.manualPaidUsed)>0) paidUsages.push({date:now, days:Number(s.manualPaidUsed)});
+
+  const flexTotal = leaveSettings.flexDays;
+  const childTotal = (Number(s.kids)||0) * leaveSettings.childDaysPerKid;
+  const flexRemain = flexTotal - usedFlex;
+  const childRemain = childTotal - usedChild;
+
+  let paidLine;
+  if(!s.hireDate){
+    paidLine = `<div>🟢 <b>有給</b>：<span style="color:var(--red)">入社日が未登録のため計算できません（管理者にご確認ください）</span></div>`;
+  } else {
+    const b = computePaidLeaveBalance(s.hireDate, paidUsages, now, leaveSettings.paidBaseDays, leaveSettings.paidIncrement);
+    if(!b){
+      paidLine = `<div>🟢 <b>有給</b>：<span style="color:var(--red)">入社日が未登録のため計算できません</span></div>`;
+    } else if(b.notYet){
+      paidLine = `<div>🟢 <b>有給</b>：まだ付与されていません（${fmtDate(b.firstGrant)}〜付与予定）</div>`;
+    } else {
+      const remainColor = b.remain < 0 ? 'var(--red)' : b.remain === 0 ? '#d97706' : 'var(--navy)';
+      const complyOk = b.usedSinceLastGrant >= 5;
+      const complyText = complyOk
+        ? `<span style="color:var(--green);font-size:11px">（✅年5日消化済み）</span>`
+        : `<span style="color:var(--red);font-size:11px">（⚠️年5日消化義務まであと${(5-b.usedSinceLastGrant)}日）</span>`;
+      paidLine = `<div>🟢 <b>有給</b>：<span style="font-weight:700;color:${remainColor}">残${b.remain}日</span>　${complyText}<div style="font-size:11px;color:var(--gray)">今期消化${b.usedSinceLastGrant}日／今期付与${b.lastGrant.amount}日${b.carry>0?`／繰越${b.carry}日`:''}（直近付与日：${fmtDate(b.lastGrant.date)}）</div></div>`;
+    }
+  }
+
+  const flexColor = flexRemain < 0 ? 'var(--red)' : flexRemain === 0 ? '#d97706' : 'var(--navy)';
+  const childColor = childRemain < 0 ? 'var(--red)' : childRemain === 0 ? '#d97706' : 'var(--navy)';
+  const flexLine = `<div style="margin-top:8px">🟣 <b>フレックス休暇</b>：<span style="font-weight:700;color:${flexColor}">残${flexRemain}日</span><div style="font-size:11px;color:var(--gray)">消化${usedFlex}日／付与${flexTotal}日（1月〜12月）</div></div>`;
+  const childLine = `<div style="margin-top:8px">🟠 <b>子の看護休暇</b>：<span style="font-weight:700;color:${childColor}">残${childRemain}日</span><div style="font-size:11px;color:var(--gray)">消化${usedChild}日／付与${childTotal}日（対象児童${Number(s.kids)||0}人、4月〜翌3月）</div></div>`;
+
+  box.innerHTML = paidLine + flexLine + childLine;
+}
+
 function init(){
   const now = new Date();
   calYear = now.getMonth() === 11 ? now.getFullYear()+1 : now.getFullYear();
   calMonth = (now.getMonth()+1) % 12;
   loadStaff();
+  loadLeaveSettings();
+  loadKibouCache();
   renderTypeTabs();
   renderCal();
 }
