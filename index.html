@@ -75,6 +75,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .rule-input{width:100%;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;outline:none;transition:.15s}
 .rule-input:focus{border-color:var(--teal)}
 .required-staff-select{width:100%;padding:5px 4px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-family:inherit;outline:none;background:#fff}
+.required-staff-checks{max-height:110px;overflow-y:auto;border:1.5px solid var(--border);border-radius:6px;background:#fff;padding:2px}
+.required-staff-check{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12px;cursor:pointer;border-radius:4px}
+.required-staff-check:hover{background:var(--bg)}
+.required-staff-check input{margin:0;flex-shrink:0}
 
 /* SHIFT GRID */
 .month-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px}
@@ -177,6 +181,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="htab" onclick="showPage('staff',this)">👥 スタッフ</button>
     <button class="htab" onclick="showPage('rules',this)">⚙️ ルール</button>
     <button class="htab" onclick="showPage('kibou',this)">📩 希望休</button>
+    <button class="htab" onclick="showPage('zandaka',this)">🌴 残日数</button>
   </div>
 </div>
 
@@ -208,7 +213,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="add-btn" onclick="openStaffModal()">＋ スタッフ追加</button>
       </div>
       <table class="staff-table">
-        <thead><tr><th>名前</th><th>職種</th><th>性別</th><th>勤務形態</th><th>出勤可能曜日</th><th>操作</th></tr></thead>
+        <thead><tr><th>名前</th><th>職種</th><th>性別</th><th>勤務形態</th><th>出勤可能曜日</th><th>入社日</th><th>操作</th></tr></thead>
         <tbody id="staff-tbody"></tbody>
       </table>
     </div>
@@ -231,6 +236,31 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <button class="add-btn" onclick="loadKibou()">🔄 最新を取得</button>
       </div>
       <div id="kibou-list"></div>
+    </div>
+  </div>
+
+  <!-- ZANDAKA (残日数) PAGE -->
+  <div class="page" id="page-zandaka">
+    <div class="card">
+      <div class="sec-title"><span>⚙️</span>付与日数の設定</div>
+      <div class="form-row2" style="grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div><label class="form-label">有給（日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-paid"><p class="modal-sub" style="margin-top:4px">入社6か月後に付与、以後は個人ごとに1年おきに更新</p></div>
+        <div><label class="form-label">フレックス休暇（日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-flex"><p class="modal-sub" style="margin-top:4px">毎年1月〜12月（全員共通）</p></div>
+        <div><label class="form-label">子の看護休暇（対象児童1人あたり・日）</label><input class="form-input" type="number" min="0" step="0.5" id="zd-child"><p class="modal-sub" style="margin-top:4px">毎年4月〜翌3月（全員共通）</p></div>
+      </div>
+      <p class="modal-sub" style="margin-top:8px">子の看護休暇は「対象の子どもの人数（小学3年生以下）」×この日数で自動計算されます。入社日・対象児童数はスタッフ編集画面で設定してください。</p>
+      <button class="add-btn" style="margin-top:10px" onclick="saveLeaveSettings()">💾 設定を保存</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="sec-title" style="margin:0"><span>🌴</span>休暇残日数</div>
+        <button class="add-btn" onclick="renderZandaka()">🔄 最新を取得</button>
+      </div>
+      <div id="zd-period-note" style="font-size:12px;color:var(--gray);margin-bottom:14px"></div>
+      <table class="staff-table">
+        <thead><tr><th>名前</th><th>有給</th><th>フレックス休暇</th><th>子の看護休暇</th></tr></thead>
+        <tbody id="zandaka-tbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -270,6 +300,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <label class="form-label" id="day-toggles-label">出勤可能曜日</label>
   <div class="day-toggle-row" id="day-toggles"></div>
   <p class="modal-sub" id="random-note" style="display:none;margin-top:6px">ランダムシフトは全曜日が出勤対象です。月の休日数は「その月の土日の日数＋1日」で自動計算されます。</p>
+  <label class="form-label">子の看護休暇の対象児童数（小学3年生以下）</label>
+  <input class="form-input" type="number" min="0" step="1" id="s-kids" placeholder="0">
+  <label class="form-label">入社日<span style="font-size:9px;font-weight:400;margin-left:2px;text-transform:none">（有給の起算に使用）</span></label>
+  <input class="form-input" type="date" id="s-hiredate">
   <div class="modal-actions">
     <button class="btn-delete" id="staff-del-btn" style="display:none" onclick="deleteStaff()">削除</button>
     <button class="btn-cancel" onclick="closeStaffModal()">キャンセル</button>
@@ -363,6 +397,7 @@ let editingShift = null;
 let selectedShiftValue = null;
 let editingDays = [];
 let holidays = {};
+let leaveSettings = {paidDays:10, flexDays:6, childDaysPerKid:3};
 
 function getNow(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+monthOffset); return d; }
 function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
@@ -407,8 +442,8 @@ async function loadHolidays(){
 async function loadAll(){
   document.getElementById('loading-overlay').classList.add('on');
   try {
-    const [staffRes, shiftsRes, rulesRes] = await Promise.all([
-      gasGet('loadStaff'), gasGet('loadShifts'), gasGet('loadRules'), loadHolidays()
+    const [staffRes, shiftsRes, rulesRes, leaveSettingsRes] = await Promise.all([
+      gasGet('loadStaff'), gasGet('loadShifts'), gasGet('loadRules'), gasGet('loadLeaveSettings'), loadHolidays()
     ]);
     if(staffRes.staff && staffRes.staff.length > 0){
       staff = staffRes.staff.map(s=>({
@@ -416,8 +451,13 @@ async function loadAll(){
         id: Number(s.id),
         type: s.type==='weekday' ? 'random' : s.type, // 旧データ互換
         job: s.job || 'PT',
-        days: Array.isArray(s.days) ? s.days.map(Number) : []
+        days: Array.isArray(s.days) ? s.days.map(Number) : [],
+        kids: Number(s.kids) || 0,
+        hireDate: s.hireDate || ''
       }));
+    }
+    if(leaveSettingsRes.leaveSettings){
+      leaveSettings = {...leaveSettings, ...leaveSettingsRes.leaveSettings};
     }
     if(rulesRes.rules && rulesRes.rules.length > 0){
       rulesRes.rules.forEach(r => { rules[r.dow]={minF:r.minF,minM:r.minM,minTotal:r.minTotal||0,maxTotal:r.maxTotal||0,minST:r.minST||0,required:r.required||[]}; });
@@ -482,6 +522,7 @@ function showPage(id,btn){
   if(id==='staff') renderStaff();
   if(id==='rules') renderRules();
   if(id==='kibou') loadKibou();
+  if(id==='zandaka') renderZandaka();
   if(id==='shift') renderShift();
 }
 
@@ -782,7 +823,8 @@ function renderStaff(){
     const tBadge=s.type==='full'?'<span class="badge badge-full">固定・常勤</span>':isRandomType(s.type)?'<span class="badge badge-random">ランダム</span>':'<span class="badge badge-short">固定・時短</span>';
     const job=s.job||'PT';
     const jBadge=`<span class="badge" style="background:${JOB_COLORS[job]}22;color:${JOB_COLORS[job]}">${JOB_LABELS[job]||job}</span>`;
-    return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${jBadge}</td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
+    const hireDateText = s.hireDate ? s.hireDate : '<span style="color:var(--red);font-size:11px">未設定</span>';
+    return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${jBadge}</td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td style="font-size:12px">${hireDateText}</td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
   }).join('');
 }
 
@@ -794,6 +836,8 @@ function openStaffModal(id){
   document.getElementById('s-gender').value=s?s.gender:'f';
   document.getElementById('s-job').value=s?(s.job||'PT'):'PT';
   document.getElementById('s-type').value=s?s.type:'full';
+  document.getElementById('s-kids').value=s?(s.kids||0):0;
+  document.getElementById('s-hiredate').value=s?(s.hireDate||''):'';
   editingDays = s ? [...s.days] : [1,2,3,4,5];
   renderDayToggles();
   updateRandomNote();
@@ -819,7 +863,7 @@ function onTypeChange(){
 async function saveStaff(){
   const name=document.getElementById('s-name').value.trim();
   if(!name){ showToast('❌ 氏名を入力してください'); return; }
-  const obj={name,gender:document.getElementById('s-gender').value,job:document.getElementById('s-job').value,type:document.getElementById('s-type').value,days:[...editingDays].sort((a,b)=>a-b)};
+  const obj={name,gender:document.getElementById('s-gender').value,job:document.getElementById('s-job').value,type:document.getElementById('s-type').value,days:[...editingDays].sort((a,b)=>a-b),kids:parseInt(document.getElementById('s-kids').value)||0,hireDate:document.getElementById('s-hiredate').value||''};
   if(editingStaffId){ const idx=staff.findIndex(s=>s.id===editingStaffId); staff[idx]={...staff[idx],...obj}; }
   else { const newId=Math.max(0,...staff.map(s=>s.id))+1; staff.push({id:newId,...obj}); }
   closeStaffModal(); renderStaff();
@@ -839,7 +883,7 @@ function closeStaffModal(e){ if(e&&e.target!==document.getElementById('staff-ove
 function renderRules(){
   document.getElementById('rule-grid').innerHTML=DAYS.map((dn,dow)=>{
     const r=rules[dow]; const isSat=dow===6,isSun=dow===0;
-    const reqOpts=staff.map(s=>`<option value="${s.id}"${(r.required||[]).includes(s.id)?'selected':''}>${s.name}</option>`).join('');
+    const reqChecks=staff.map(s=>`<label class="required-staff-check"><input type="checkbox" value="${s.id}"${(r.required||[]).includes(s.id)?' checked':''}>${s.name}</label>`).join('');
     return `<div class="rule-day-card${isSat?' sat':isSun?' sun':''}">
       <div class="rule-day-title${isSat?' sat':isSun?' sun':''}">${dn}曜日</div>
       <div class="rule-label">女性 最低</div><input class="rule-input" type="number" min="0" max="10" value="${r.minF}" id="rule-f-${dow}">
@@ -847,8 +891,8 @@ function renderRules(){
       <div class="rule-label">合計 最低人数</div><input class="rule-input" type="number" min="0" max="20" value="${r.minTotal||0}" id="rule-t-${dow}">
       <div class="rule-label" style="color:#7c3aed">ST 最低人数</div><input class="rule-input" type="number" min="0" max="10" value="${r.minST||0}" id="rule-st-${dow}" style="border-color:#c4b5fd">
       <div class="rule-label" style="color:#d97706">合計 上限人数<span style="font-size:9px;font-weight:400;margin-left:2px">（0=制限なし）</span></div><input class="rule-input" type="number" min="0" max="30" value="${r.maxTotal||0}" id="rule-max-${dow}" style="border-color:#fcd34d">
-      <div class="rule-label">必須スタッフ</div>
-      <select class="required-staff-select" id="rule-req-${dow}" multiple size="3">${reqOpts}</select>
+      <div class="rule-label">必須スタッフ<span style="font-size:9px;font-weight:400;margin-left:2px">（複数可）</span></div>
+      <div class="required-staff-checks" id="rule-req-${dow}">${reqChecks}</div>
     </div>`;
   }).join('');
 }
@@ -859,8 +903,8 @@ async function saveRules(){
     const minTotal=parseInt(document.getElementById(`rule-t-${dow}`)?.value||0);
     const minST=parseInt(document.getElementById(`rule-st-${dow}`)?.value||0);
     const maxTotal=parseInt(document.getElementById(`rule-max-${dow}`)?.value||0);
-    const sel=document.getElementById(`rule-req-${dow}`);
-    const required=sel?Array.from(sel.selectedOptions).map(o=>parseInt(o.value)):[];
+    const reqBox=document.getElementById(`rule-req-${dow}`);
+    const required=reqBox?Array.from(reqBox.querySelectorAll('input[type=checkbox]:checked')).map(el=>parseInt(el.value)):[];
     rules[dow]={minF,minM,minTotal,maxTotal,minST,required};
   });
   setSyncStatus('saving','保存中…');
@@ -1033,6 +1077,124 @@ function applyKibou(name, dates, type){
   document.querySelector('.htab').click();
   renderShift();
   showToast(`✅ ${name}の${LEAVE_TYPES[code].label}をシフトに反映しました（${target.getMonth()+1}月）`);
+}
+
+// ZANDAKA（休暇残日数）
+// 子の看護休暇：4月始まり〜翌3月末（全員共通）
+function getFiscalYearRange(baseDate){
+  const y = baseDate.getFullYear();
+  const startY = baseDate.getMonth() >= 3 ? y : y - 1; // 3=4月(0始まり)
+  const start = new Date(startY, 3, 1);
+  const end = new Date(startY + 1, 2, 31);
+  return {start, end, label: `${startY}年4月〜${startY+1}年3月`};
+}
+// フレックス休暇：1月始まり〜12月末（全員共通）
+function getCalendarYearRange(baseDate){
+  const y = baseDate.getFullYear();
+  return {start:new Date(y,0,1), end:new Date(y,11,31), label:`${y}年1月〜12月`};
+}
+// 有給：入社日の半年後に初回付与、以後は1年ごとに個人の起算日で更新
+function getPaidLeavePeriod(hireDateStr, baseDate){
+  if(!hireDateStr) return null;
+  const hire = new Date(hireDateStr);
+  if(isNaN(hire.getTime())) return null;
+  const firstGrant = new Date(hire.getFullYear(), hire.getMonth()+6, hire.getDate());
+  if(baseDate < firstGrant) return {notYet:true, firstGrant};
+  let start = new Date(firstGrant);
+  while(true){
+    const next = new Date(start.getFullYear()+1, start.getMonth(), start.getDate());
+    if(next > baseDate) break;
+    start = next;
+  }
+  const end = new Date(start.getFullYear()+1, start.getMonth(), start.getDate()-1);
+  return {start, end};
+}
+function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+function saveLeaveSettings(){
+  leaveSettings = {
+    paidDays: parseFloat(document.getElementById('zd-paid').value) || 0,
+    flexDays: parseFloat(document.getElementById('zd-flex').value) || 0,
+    childDaysPerKid: parseFloat(document.getElementById('zd-child').value) || 0
+  };
+  setSyncStatus('saving','保存中…');
+  gasPost({action:'saveLeaveSettings', ...leaveSettings}).then(()=>{
+    setSyncStatus('ok','同期済み');
+    showToast('✅ 付与日数の設定を保存しました');
+    renderZandaka();
+  }).catch(()=>{ setSyncStatus('error','保存失敗'); });
+}
+async function renderZandaka(){
+  document.getElementById('zd-paid').value = leaveSettings.paidDays;
+  document.getElementById('zd-flex').value = leaveSettings.flexDays;
+  document.getElementById('zd-child').value = leaveSettings.childDaysPerKid;
+
+  const now = new Date();
+  const childFY = getFiscalYearRange(now);
+  const flexCY = getCalendarYearRange(now);
+  document.getElementById('zd-period-note').textContent =
+    `フレックス休暇：${flexCY.label}／子の看護休暇：${childFY.label}／有給：入社日を基準にスタッフごとに異なります（下表に表示）`;
+
+  document.getElementById('zandaka-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--gray);font-size:13px;text-align:center;padding:16px">読み込み中…</td></tr>`;
+
+  // スタッフごとの有給の対象期間を先に計算しておく
+  const paidPeriods = {};
+  staff.forEach(s=> paidPeriods[s.id] = getPaidLeavePeriod(s.hireDate, now));
+
+  // 希望休の申請内容（未確定分も含む）から、休暇の種類ごとに消化日数を集計する
+  const used = {}; // {staffId: {paid:0, flex:0, child:0}}
+  staff.forEach(s=> used[s.id]={paid:0, flex:0, child:0});
+  try {
+    const res = await gasGet('loadKibou');
+    const list = res.kibou || [];
+    list.forEach(k=>{
+      const s = staff.find(x=>normName(x.name)===normName(k.name));
+      if(!s) return;
+      const code = (k.type && LEAVE_TYPES[k.type]) ? k.type : 'off';
+      let bucket=null;
+      if(code==='paid'||code==='paid_am'||code==='paid_pm') bucket='paid';
+      else if(code==='flex') bucket='flex';
+      else if(code==='child'||code==='child_am'||code==='child_pm') bucket='child';
+      if(!bucket) return;
+      const perDay = LEAVE_TYPES[code].days;
+      (k.dates||[]).forEach(ds=>{
+        const dt=new Date(ds);
+        if(bucket==='flex'){
+          if(dt>=flexCY.start && dt<=flexCY.end) used[s.id].flex+=perDay;
+        } else if(bucket==='child'){
+          if(dt>=childFY.start && dt<=childFY.end) used[s.id].child+=perDay;
+        } else if(bucket==='paid'){
+          const p = paidPeriods[s.id];
+          if(p && !p.notYet && dt>=p.start && dt<=p.end) used[s.id].paid+=perDay;
+        }
+      });
+    });
+  } catch(e){ console.log('残日数集計に失敗しました', e); }
+
+  const cell = (usedDays, total)=>{
+    const remain = total - usedDays;
+    const color = remain < 0 ? 'var(--red)' : remain === 0 ? 'var(--yellow)' : 'var(--navy)';
+    return `<span style="font-weight:700;color:${color}">残${remain}</span><span style="color:var(--gray);font-size:11px"> ／ 消化${usedDays} ／ 付与${total}</span>`;
+  };
+
+  document.getElementById('zandaka-tbody').innerHTML = staff.map(s=>{
+    const flexTotal = leaveSettings.flexDays;
+    const childTotal = (s.kids||0) * leaveSettings.childDaysPerKid;
+    const p = paidPeriods[s.id];
+    let paidCell;
+    if(!p){
+      paidCell = '<span style="color:var(--red);font-size:12px">入社日未設定</span>';
+    } else if(p.notYet){
+      paidCell = `<span style="color:var(--gray);font-size:12px">未付与（${fmtDate(p.firstGrant)}〜）</span>`;
+    } else {
+      paidCell = cell(used[s.id].paid, leaveSettings.paidDays) + `<div style="font-size:10px;color:var(--gray2)">（${fmtDate(p.start)}〜${fmtDate(p.end)}）</div>`;
+    }
+    return `<tr>
+      <td><strong>${s.name}</strong></td>
+      <td>${paidCell}</td>
+      <td>${cell(used[s.id].flex, flexTotal)}</td>
+      <td>${cell(used[s.id].child, childTotal)}${s.kids?'':'　<span style="color:var(--gray2);font-size:11px">(対象児童0人)</span>'}</td>
+    </tr>`;
+  }).join('');
 }
 
 // TOAST
