@@ -486,7 +486,9 @@ async function renderShiftView(){
   });
   body += '</tbody>';
 
-  document.getElementById('sv-table').innerHTML = hdr + body;
+  const svTableEl = document.getElementById('sv-table');
+  svTableEl.innerHTML = hdr + body;
+  svTableEl.style.minWidth = (76 + dim*30) + 'px';
 
   document.getElementById('sv-legend').innerHTML = ['work','off','paid','flex','child','bereave','absence'].map(code=>{
     const dt = DISPLAY_TYPES[code];
