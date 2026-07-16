@@ -72,6 +72,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sv-table th.sat{background:#3b82f6}.sv-table th.sun{background:#ef4444}.sv-table th.holiday{background:#f59e0b}
 .sv-table td{border:1px solid var(--border);text-align:center;padding:2px;height:32px;width:30px;font-size:10px;font-weight:700}
 .sv-table td:first-child{text-align:left;padding-left:8px;font-size:11px;font-weight:600;position:sticky;left:0;background:#fff;border-right:2px solid var(--border);z-index:1}
+.mode-btn{flex:1;padding:10px;border-radius:8px;border:1.5px solid var(--border);background:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;color:var(--gray)}
+.mode-btn.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.sv-day-row{display:flex;align-items:center;justify-content:space-between;padding:12px 4px;border-bottom:1px solid var(--border)}
+.sv-day-row:last-child{border-bottom:none}
+.sv-day-name{font-size:15px;font-weight:600;color:var(--navy)}
+.sv-day-badge{font-size:13px;font-weight:700;padding:6px 14px;border-radius:20px}
 </style>
 </head>
 <body>
@@ -150,13 +156,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
   <div class="page" id="page-shiftview">
     <div class="card">
-      <div class="sv-month-nav">
+      <div style="display:flex;gap:6px;margin-bottom:14px">
+        <button class="mode-btn on" id="mode-btn-day" onclick="setSvMode('day')">📋 日ごと</button>
+        <button class="mode-btn" id="mode-btn-month" onclick="setSvMode('month')">📅 月間表</button>
+      </div>
+      <div id="sv-day-nav" class="sv-month-nav">
+        <button class="mnav-btn" onclick="svChangeDay(-1)">‹</button>
+        <h3 id="sv-day-title"></h3>
+        <button class="mnav-btn" onclick="svChangeDay(1)">›</button>
+      </div>
+      <div id="sv-day-list"></div>
+
+      <div id="sv-month-nav" class="sv-month-nav" style="display:none">
         <button class="mnav-btn" onclick="svChangeMonth(-1)">‹</button>
         <h3 id="sv-month-title"></h3>
         <button class="mnav-btn" onclick="svChangeMonth(1)">›</button>
       </div>
       <div class="sv-legend" id="sv-legend"></div>
-      <div class="sv-table-wrap"><table class="sv-table" id="sv-table"></table></div>
+      <div class="sv-table-wrap" id="sv-table-wrap" style="display:none"><table class="sv-table" id="sv-table"></table></div>
       <p style="font-size:11px;color:var(--gray);margin-top:10px">※管理者が保存した確定版のシフトです。希望休の申請は別途「希望休申請」タブから行ってください。</p>
     </div>
   </div>
@@ -416,25 +433,41 @@ const DISPLAY_TYPES = {
   absence_pm: {short:'PM欠', bg:'#fee2e2', color:'#dc2626'},
 };
 const DAYS_JA = ['日','月','火','水','木','金','土'];
-let svYear, svMonth;
+let svYear, svMonth, svDay;
+let svMode = 'day';
 let svHolidays = {};
 let svShifts = null; // {staffId: {day: value}} の月別マップ
+let svLoadedKey = null; // どの年月分を読み込み済みか（年-月）
+
+function setSvMode(mode){
+  svMode = mode;
+  document.getElementById('mode-btn-day').classList.toggle('on', mode==='day');
+  document.getElementById('mode-btn-month').classList.toggle('on', mode==='month');
+  document.getElementById('sv-day-nav').style.display = mode==='day' ? 'flex' : 'none';
+  document.getElementById('sv-day-list').style.display = mode==='day' ? 'block' : 'none';
+  document.getElementById('sv-month-nav').style.display = mode==='month' ? 'flex' : 'none';
+  document.getElementById('sv-table-wrap').style.display = mode==='month' ? 'block' : 'none';
+  renderShiftView();
+}
 
 function svChangeMonth(d){
   svMonth += d;
   if(svMonth>11){svMonth=0;svYear++;}
   if(svMonth<0){svMonth=11;svYear--;}
-  svShifts = null;
+  svDay = 1;
+  renderShiftView();
+}
+function svChangeDay(d){
+  const dim = new Date(svYear, svMonth+1, 0).getDate();
+  svDay += d;
+  if(svDay > dim){ svDay=1; svMonth++; if(svMonth>11){svMonth=0;svYear++;} }
+  if(svDay < 1){ svMonth--; if(svMonth<0){svMonth=11;svYear--;} svDay=new Date(svYear, svMonth+1, 0).getDate(); }
   renderShiftView();
 }
 
-async function renderShiftView(){
-  if(!svYear){
-    const now = new Date();
-    svYear = now.getFullYear(); svMonth = now.getMonth();
-  }
-  document.getElementById('sv-month-title').textContent = `${svYear}年${svMonth+1}月`;
-  document.getElementById('sv-table').innerHTML = `<tr><td style="padding:20px;color:var(--gray);font-size:13px">読み込み中…</td></tr>`;
+async function loadShiftViewData(){
+  const key = `${svYear}-${svMonth}`;
+  if(svLoadedKey === key) return; // 同じ月なら読み込み直さない
 
   if(allStaff.length===0){
     try { const res=await fetch(`${GAS_URL}?action=loadStaff`); const data=await res.json(); allStaff=data.staff||[]; } catch(e){}
@@ -442,28 +475,65 @@ async function renderShiftView(){
   if(Object.keys(svHolidays).length===0){
     try { const res=await fetch('https://holidays-jp.github.io/api/v1/date.json'); svHolidays=await res.json(); } catch(e){}
   }
+  const res = await fetch(`${GAS_URL}?action=loadShifts`);
+  const data = await res.json();
+  svShifts = {};
+  (data.shifts||[]).forEach(r=>{
+    if(Number(r.year)!==svYear || Number(r.month)!==svMonth) return;
+    if(!svShifts[r.staffId]) svShifts[r.staffId]={};
+    svShifts[r.staffId][Number(r.day)] = r.value;
+  });
+  svLoadedKey = key;
+}
+
+async function renderShiftView(){
+  if(!svYear){
+    const now = new Date();
+    svYear = now.getFullYear(); svMonth = now.getMonth(); svDay = now.getDate();
+  }
   try {
-    const res = await fetch(`${GAS_URL}?action=loadShifts`);
-    const data = await res.json();
-    svShifts = {};
-    (data.shifts||[]).forEach(r=>{
-      if(Number(r.year)!==svYear || Number(r.month)!==svMonth) return;
-      if(!svShifts[r.staffId]) svShifts[r.staffId]={};
-      svShifts[r.staffId][Number(r.day)] = r.value;
-    });
+    await loadShiftViewData();
   } catch(e){
-    document.getElementById('sv-table').innerHTML = `<tr><td style="padding:20px;color:var(--red);font-size:13px">読み込みに失敗しました</td></tr>`;
+    const errHtml = `<p style="padding:20px;color:var(--red);font-size:13px">読み込みに失敗しました</p>`;
+    document.getElementById('sv-day-list').innerHTML = errHtml;
+    document.getElementById('sv-table').innerHTML = '';
     return;
   }
+  if(svMode==='day') renderDayList(); else renderMonthGrid();
+  renderSvLegend();
+}
 
+const dateKeyOf = (y,m,d)=> `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+function renderDayList(){
+  const dow = new Date(svYear, svMonth, svDay).getDay();
+  const holidayName = svHolidays[dateKeyOf(svYear,svMonth,svDay)];
+  const dowColor = holidayName ? '#d97706' : dow===0?'#ef4444':dow===6?'#3b82f6':'var(--navy)';
+  document.getElementById('sv-day-title').innerHTML = `${svYear}年${svMonth+1}月${svDay}日<span style="color:${dowColor}">（${holidayName?'祝':DAYS_JA[dow]}）</span>`;
+
+  if(allStaff.length===0){
+    document.getElementById('sv-day-list').innerHTML = `<p style="padding:20px;color:var(--gray);font-size:13px">スタッフが登録されていません</p>`;
+    return;
+  }
+  document.getElementById('sv-day-list').innerHTML = allStaff.map(s=>{
+    const val = (svShifts[s.id] && svShifts[s.id][svDay]) || null;
+    const dt = val ? (DISPLAY_TYPES[val]||DISPLAY_TYPES.off) : null;
+    const badge = dt
+      ? `<span class="sv-day-badge" style="background:${dt.bg};color:${dt.color}">${dt.short}</span>`
+      : `<span class="sv-day-badge" style="background:var(--bg);color:var(--gray)">－</span>`;
+    return `<div class="sv-day-row"><span class="sv-day-name">${s.name}</span>${badge}</div>`;
+  }).join('');
+}
+
+function renderMonthGrid(){
+  document.getElementById('sv-month-title').textContent = `${svYear}年${svMonth+1}月`;
   const dim = new Date(svYear, svMonth+1, 0).getDate();
   const days = [];
   for(let d=1; d<=dim; d++){ days.push({d, dow:new Date(svYear,svMonth,d).getDay()}); }
-  const dateKey = (d)=> `${svYear}-${String(svMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
   let hdr = '<thead><tr><th>スタッフ</th>';
   days.forEach(({d,dow})=>{
-    const holidayName = svHolidays[dateKey(d)];
+    const holidayName = svHolidays[dateKeyOf(svYear,svMonth,d)];
     let cls = dow===6?'sat':dow===0?'sun':'';
     if(holidayName) cls='holiday';
     hdr += `<th class="${cls}">${d}<br>${DAYS_JA[dow]}</th>`;
@@ -489,7 +559,9 @@ async function renderShiftView(){
   const svTableEl = document.getElementById('sv-table');
   svTableEl.innerHTML = hdr + body;
   svTableEl.style.minWidth = (76 + dim*30) + 'px';
+}
 
+function renderSvLegend(){
   document.getElementById('sv-legend').innerHTML = ['work','off','paid','flex','child','bereave','absence'].map(code=>{
     const dt = DISPLAY_TYPES[code];
     return `<div class="sv-legend-item"><div class="sv-legend-dot" style="background:${dt.bg}"></div>${dt.short}</div>`;
