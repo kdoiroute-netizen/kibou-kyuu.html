@@ -199,7 +199,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="auth-overlay" id="auth-overlay">
   <div class="auth-card">
     <div class="auth-logo">シフト<span>管理</span></div>
-    <div class="auth-note" id="auth-setup-note" style="display:none">まだ管理者アカウントが登録されていません。お名前とパスワードを入力して、最初のアカウントを作成してください。</div>
+    <div class="auth-note" id="auth-setup-note" style="display:none">まだ管理者アカウントが登録されていません。安全のため、最初の1件だけはWeb画面からではなく、Googleスプレッドシートに直接登録する必要があります。スプレッドシートに「管理者アカウント」というシートを作り、1行目に <b>name</b> と <b>password</b>、2行目にご自身の名前とパスワードを入力してください。登録後、この画面を再読み込みしてください。</div>
     <label class="form-label" style="margin-top:0">お名前</label>
     <input class="form-input" id="auth-name" placeholder="例：田中 花子">
     <label class="form-label">パスワード</label>
@@ -1355,13 +1355,9 @@ async function submitAuth(){
   if(!name || !pw){ errEl.textContent='お名前とパスワードを入力してください'; errEl.style.display='block'; return; }
 
   if(adminAccounts.length===0){
-    // 管理者アカウントが1件もない場合は、この入力を最初のアカウントとして登録する
-    adminAccounts.push({name, password:pw});
-    await gasPost({action:'saveAdminAccounts', admins:adminAccounts});
-    localStorage.setItem('shiftAdminAuthed','true');
-    localStorage.setItem('shiftAdminName', name);
-    document.getElementById('auth-overlay').classList.add('hide');
-    loadAll();
+    // セキュリティのため、Web画面からの自動登録は行わない。最初の1件はスプレッドシートで直接登録する必要がある。
+    errEl.textContent='まだ1件もアカウントがありません。スプレッドシートで最初の1件を直接登録してください（下の説明を参照）。';
+    errEl.style.display='block';
     return;
   }
 
