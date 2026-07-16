@@ -56,6 +56,22 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .loading-msg{text-align:center;color:var(--gray);font-size:13px;padding:8px 0;display:flex;align-items:center;gap:6px}
 .spinner{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--teal);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
+.tabbar{display:flex;background:var(--navy);padding:0 12px}
+.tabbtn{flex:1;padding:12px 8px;background:none;border:none;color:rgba(255,255,255,.6);font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;border-bottom:2px solid transparent}
+.tabbtn.on{color:#fff;border-bottom-color:var(--teal)}
+.page{display:none}.page.on{display:block}
+.sv-month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sv-month-nav h3{font-size:15px;font-weight:700}
+.sv-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;font-size:11px}
+.sv-legend-item{display:flex;align-items:center;gap:4px;color:var(--gray)}
+.sv-legend-dot{width:9px;height:9px;border-radius:3px;border:1px solid var(--border)}
+.sv-table-wrap{overflow-x:auto;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.sv-table{border-collapse:collapse;background:#fff;min-width:640px}
+.sv-table th{padding:6px 2px;font-size:10px;font-weight:700;color:#fff;background:var(--navy);text-align:center;width:30px}
+.sv-table th:first-child{text-align:left;padding-left:8px;width:76px;position:sticky;left:0;background:var(--navy);z-index:2}
+.sv-table th.sat{background:#3b82f6}.sv-table th.sun{background:#ef4444}.sv-table th.holiday{background:#f59e0b}
+.sv-table td{border:1px solid var(--border);text-align:center;padding:2px;height:32px;width:30px;font-size:10px;font-weight:700}
+.sv-table td:first-child{text-align:left;padding-left:8px;font-size:11px;font-weight:600;position:sticky;left:0;background:#fff;border-right:2px solid var(--border);z-index:1}
 </style>
 </head>
 <body>
@@ -63,7 +79,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <h1>📅 希望休申請</h1>
   <p>種別を選び、休みたい日をカレンダーで選んで送信してください</p>
 </div>
+<div class="tabbar">
+  <button class="tabbtn on" onclick="showTab('request',this)">📩 希望休申請</button>
+  <button class="tabbtn" onclick="showTab('shiftview',this)">📅 シフト表を見る</button>
+</div>
 <div class="main">
+  <div class="page on" id="page-request">
   <div id="form-area">
     <div class="card">
       <label class="label">あなたの名前</label>
@@ -124,6 +145,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="icon">✅</div>
     <h2>送信完了！</h2>
     <p>申請を受け付けました。<br>管理者が確認してシフトに反映します。</p>
+  </div>
+  </div>
+
+  <div class="page" id="page-shiftview">
+    <div class="card">
+      <div class="sv-month-nav">
+        <button class="mnav-btn" onclick="svChangeMonth(-1)">‹</button>
+        <h3 id="sv-month-title"></h3>
+        <button class="mnav-btn" onclick="svChangeMonth(1)">›</button>
+      </div>
+      <div class="sv-legend" id="sv-legend"></div>
+      <div class="sv-table-wrap"><table class="sv-table" id="sv-table"></table></div>
+      <p style="font-size:11px;color:var(--gray);margin-top:10px">※管理者が保存した確定版のシフトです。希望休の申請は別途「希望休申請」タブから行ってください。</p>
+    </div>
   </div>
 </div>
 <script>
@@ -353,6 +388,110 @@ function init(){
   loadKibouCache();
   renderTypeTabs();
   renderCal();
+}
+
+// タブ切り替え
+function showTab(id, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tabbtn').forEach(t=>t.classList.remove('on'));
+  document.getElementById('page-'+id).classList.add('on');
+  if(btn) btn.classList.add('on');
+  if(id==='shiftview') renderShiftView();
+}
+
+// 表示用（出勤・公休なども含む全種別の色分け。希望休申請の選択肢とは別に持つ）
+const DISPLAY_TYPES = {
+  work:       {short:'出勤', bg:'#0891b2', color:'#fff'},
+  off:        {short:'休み', bg:'#f1f5f9', color:'#6b7280'},
+  paid:       {short:'有給', bg:'#dcfce7', color:'#16a34a'},
+  paid_am:    {short:'AM有', bg:'#dcfce7', color:'#16a34a'},
+  paid_pm:    {short:'PM有', bg:'#dcfce7', color:'#16a34a'},
+  flex:       {short:'フレ休', bg:'#ede9fe', color:'#7c3aed'},
+  child:      {short:'看護', bg:'#fef3c7', color:'#d97706'},
+  child_am:   {short:'AM看', bg:'#fef3c7', color:'#d97706'},
+  child_pm:   {short:'PM看', bg:'#fef3c7', color:'#d97706'},
+  bereave:    {short:'慶弔', bg:'#fce7f3', color:'#be185d'},
+  absence:    {short:'欠勤', bg:'#fee2e2', color:'#dc2626'},
+  absence_am: {short:'AM欠', bg:'#fee2e2', color:'#dc2626'},
+  absence_pm: {short:'PM欠', bg:'#fee2e2', color:'#dc2626'},
+};
+const DAYS_JA = ['日','月','火','水','木','金','土'];
+let svYear, svMonth;
+let svHolidays = {};
+let svShifts = null; // {staffId: {day: value}} の月別マップ
+
+function svChangeMonth(d){
+  svMonth += d;
+  if(svMonth>11){svMonth=0;svYear++;}
+  if(svMonth<0){svMonth=11;svYear--;}
+  svShifts = null;
+  renderShiftView();
+}
+
+async function renderShiftView(){
+  if(!svYear){
+    const now = new Date();
+    svYear = now.getFullYear(); svMonth = now.getMonth();
+  }
+  document.getElementById('sv-month-title').textContent = `${svYear}年${svMonth+1}月`;
+  document.getElementById('sv-table').innerHTML = `<tr><td style="padding:20px;color:var(--gray);font-size:13px">読み込み中…</td></tr>`;
+
+  if(allStaff.length===0){
+    try { const res=await fetch(`${GAS_URL}?action=loadStaff`); const data=await res.json(); allStaff=data.staff||[]; } catch(e){}
+  }
+  if(Object.keys(svHolidays).length===0){
+    try { const res=await fetch('https://holidays-jp.github.io/api/v1/date.json'); svHolidays=await res.json(); } catch(e){}
+  }
+  try {
+    const res = await fetch(`${GAS_URL}?action=loadShifts`);
+    const data = await res.json();
+    svShifts = {};
+    (data.shifts||[]).forEach(r=>{
+      if(Number(r.year)!==svYear || Number(r.month)!==svMonth) return;
+      if(!svShifts[r.staffId]) svShifts[r.staffId]={};
+      svShifts[r.staffId][Number(r.day)] = r.value;
+    });
+  } catch(e){
+    document.getElementById('sv-table').innerHTML = `<tr><td style="padding:20px;color:var(--red);font-size:13px">読み込みに失敗しました</td></tr>`;
+    return;
+  }
+
+  const dim = new Date(svYear, svMonth+1, 0).getDate();
+  const days = [];
+  for(let d=1; d<=dim; d++){ days.push({d, dow:new Date(svYear,svMonth,d).getDay()}); }
+  const dateKey = (d)=> `${svYear}-${String(svMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+  let hdr = '<thead><tr><th>スタッフ</th>';
+  days.forEach(({d,dow})=>{
+    const holidayName = svHolidays[dateKey(d)];
+    let cls = dow===6?'sat':dow===0?'sun':'';
+    if(holidayName) cls='holiday';
+    hdr += `<th class="${cls}">${d}<br>${DAYS_JA[dow]}</th>`;
+  });
+  hdr += '</tr></thead>';
+
+  let body = '<tbody>';
+  allStaff.forEach(s=>{
+    body += `<tr><td>${s.name}</td>`;
+    days.forEach(({d})=>{
+      const val = (svShifts[s.id] && svShifts[s.id][d]) || null;
+      const dt = val ? (DISPLAY_TYPES[val]||DISPLAY_TYPES.off) : null;
+      if(dt){
+        body += `<td style="background:${dt.bg};color:${dt.color}">${dt.short}</td>`;
+      } else {
+        body += `<td style="color:var(--gray)">－</td>`;
+      }
+    });
+    body += '</tr>';
+  });
+  body += '</tbody>';
+
+  document.getElementById('sv-table').innerHTML = hdr + body;
+
+  document.getElementById('sv-legend').innerHTML = ['work','off','paid','flex','child','bereave','absence'].map(code=>{
+    const dt = DISPLAY_TYPES[code];
+    return `<div class="sv-legend-item"><div class="sv-legend-dot" style="background:${dt.bg}"></div>${dt.short}</div>`;
+  }).join('') + `<div class="sv-legend-item"><div class="sv-legend-dot" style="background:#f59e0b"></div>祝日</div>`;
 }
 
 function changeMonth(d){
