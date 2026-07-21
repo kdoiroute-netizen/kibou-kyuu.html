@@ -88,11 +88,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .save-btn:hover{background:#15803d}
 .shift-wrap{overflow-x:auto;border-radius:12px;box-shadow:var(--shadow);overflow-y:visible}
 .shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px;table-layout:fixed}
-.shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
+.shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:52px;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
 .shift-table th:first-child{text-align:left;padding-left:12px;width:130px;position:sticky;left:0;z-index:11;background:var(--navy)}
 .shift-table th.sat-h{background:#3b82f6}.shift-table th.sun-h{background:#ef4444}.shift-table th.today-h{background:var(--teal)}
 .shift-table th.holiday-h{background:#f59e0b}
 .th-date{font-size:14px;font-weight:800;line-height:1}.th-day{font-size:10px;opacity:.7;margin-top:2px}
+.th-issue{margin-top:3px;font-size:8px;font-weight:800;line-height:1;padding:2px 3px;border-radius:4px;color:#fff;white-space:nowrap;cursor:help}
+.th-issue.short{background:#ef4444}
+.th-issue.over{background:#f59e0b;color:#78350f}
 .shift-table td{border-right:1px solid var(--border);border-bottom:1px solid var(--border);text-align:center;padding:4px 2px;vertical-align:middle;height:56px;width:34px}.shift-table tr{height:56px}
 .shift-table td:first-child{text-align:left;padding:6px 10px;border-right:2px solid var(--border);width:130px;position:sticky;left:0;z-index:1;background:#fff}
 .shift-table tr:hover td:first-child{background:#fafbfd}
@@ -565,6 +568,43 @@ function renderShift(){
   ensureShifts(y,m);
   const days=[];
   for(let d=1;d<=dim;d++){ const dow=new Date(y,m,d).getDay(); days.push({d,dow}); }
+  // 各日の人数不足・人数過多を先にまとめて計算しておく（ヘッダーのバッジ表示と集計行の両方で使い回す）
+  const violations=[];
+  const dayIssues={};
+  days.forEach(({d,dow})=>{
+    let wF=0,wM=0,wST=0;
+    staff.forEach(s=>{
+      if(getShift(y,m,s.id,d)==='work'){
+        if(s.gender==='f') wF++; else wM++;
+        if((s.job||'PT')==='ST') wST++;
+      }
+    });
+    const r=rules[dow];
+    const total=wF+wM;
+    const isSTShort=r.minST>0&&wST<r.minST;
+    const isShort=(wF<r.minF)||(wM<r.minM)||(r.minTotal&&total<r.minTotal)||isSTShort;
+    const isOver=r.maxTotal>0&&total>r.maxTotal;
+    const hasWork=staff.some(s=>getShift(y,m,s.id,d)==='work');
+    const msgs=[];
+    if(hasWork){
+      if(wF<r.minF) msgs.push(`女性${r.minF}名必要（現在${wF}名）`);
+      if(wM<r.minM) msgs.push(`男性${r.minM}名必要（現在${wM}名）`);
+      if(r.minTotal&&total<r.minTotal) msgs.push(`合計${r.minTotal}名必要（現在${total}名）`);
+      if(isSTShort) msgs.push(`ST${r.minST}名必要（現在${wST}名）`);
+      if(isOver) msgs.push(`上限${r.maxTotal}名超過（現在${total}名）`);
+      r.required.forEach(rid=>{
+        if(getShift(y,m,rid,d)!=='work'){
+          const sm=staff.find(x=>x.id===rid);
+          if(sm) msgs.push(`必須「${sm.name}」が未出勤`);
+        }
+      });
+      msgs.forEach(msg=>{
+        const tag = msg.includes('上限') ? '⚡' : '';
+        violations.push(`${m+1}/${d}（${DAYS[dow]}）：${msg}${tag}`);
+      });
+    }
+    dayIssues[d]={wF,wM,wST,total,isShort,isOver,hasWork,msgs};
+  });
   let hdr='<thead><tr><th>スタッフ</th>';
   days.forEach(({d,dow})=>{
     const isTod=isThisMonth&&d===todayD.getDate();
@@ -572,7 +612,11 @@ function renderShift(){
     let cls=isTod?'today-h':dow===6?'sat-h':dow===0?'sun-h':'';
     if(holidayName && !isTod) cls+=' holiday-h';
     const titleAttr=holidayName?` title="${holidayName}"`:'';
-    hdr+=`<th class="${cls}"${titleAttr}><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div></th>`;
+    const iss=dayIssues[d];
+    let issueBadge='';
+    if(iss.hasWork && iss.isShort) issueBadge=`<div class="th-issue short" title="${iss.msgs.join('／')}">不足</div>`;
+    else if(iss.hasWork && iss.isOver) issueBadge=`<div class="th-issue over" title="${iss.msgs.join('／')}">過多</div>`;
+    hdr+=`<th class="${cls}"${titleAttr}><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div>${issueBadge}</th>`;
   });
   hdr+='</tr></thead>';
   let body='<tbody>';
@@ -595,34 +639,8 @@ function renderShift(){
   // 集計行
   let sumRow='<tr style="background:var(--navy)">';
   sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1);background:var(--navy);position:sticky;left:0;z-index:1">出勤人数</td>`;
-  const violations=[];
   days.forEach(({d,dow})=>{
-    let wF=0,wM=0,wST=0;
-    staff.forEach(s=>{
-      if(getShift(y,m,s.id,d)==='work'){
-        if(s.gender==='f') wF++; else wM++;
-        if((s.job||'PT')==='ST') wST++;
-      }
-    });
-    const r=rules[dow];
-    const total=wF+wM;
-    const isSTShort=r.minST>0&&wST<r.minST;
-    const isShort=(wF<r.minF)||(wM<r.minM)||(r.minTotal&&total<r.minTotal)||isSTShort;
-    const isOver=r.maxTotal>0&&total>r.maxTotal;
-    const hasWork=staff.some(s=>getShift(y,m,s.id,d)==='work');
-    if(hasWork){
-      if(wF<r.minF) violations.push(`${m+1}/${d}（${DAYS[dow]}）：女性${r.minF}名必要（現在${wF}名）`);
-      if(wM<r.minM) violations.push(`${m+1}/${d}（${DAYS[dow]}）：男性${r.minM}名必要（現在${wM}名）`);
-      if(r.minTotal&&total<r.minTotal) violations.push(`${m+1}/${d}（${DAYS[dow]}）：合計${r.minTotal}名必要（現在${total}名）`);
-      if(isSTShort) violations.push(`${m+1}/${d}（${DAYS[dow]}）：ST${r.minST}名必要（現在${wST}名）`);
-      if(isOver) violations.push(`${m+1}/${d}（${DAYS[dow]}）：上限${r.maxTotal}名超過（現在${total}名）⚡`);
-      r.required.forEach(rid=>{
-        if(getShift(y,m,rid,d)!=='work'){
-          const sm=staff.find(x=>x.id===rid);
-          if(sm) violations.push(`${m+1}/${d}（${DAYS[dow]}）：必須「${sm.name}」が未出勤`);
-        }
-      });
-    }
+    const {wF,wM,wST,total,isShort,isOver}=dayIssues[d];
     const isTod=isThisMonth&&d===todayD.getDate();
     let cellBg;
     if(isShort) cellBg='rgba(220,38,38,.55)';
@@ -686,17 +704,27 @@ function computeConsecutiveViolations(y,m,dim){
   });
   return list;
 }
-// ランダムシフトのスタッフについて、今月の休み関連日数の合計が「土日の日数＋1」と一致しているかをチェックする
+// 「公休」以外（有給・フレックス休暇・子の看護休暇・欠勤・慶弔など）は、
+// 公休の枠を消費しない「特別休暇」として、公休とは別枠でプラスされる休みとして扱う。
+function isSpecialLeaveCode(code){
+  return !!code && code!=='work' && code!=='off' && code!=='off_am' && code!=='off_pm';
+}
+// スタッフの今月の休み関連日数の合計が、規定の日数と一致しているかをチェックする
 // （手動編集や複数の希望休申請などで規定日数からズレていないか、後からでも確認できるようにする）
+// ・固定シフト：土日祝（＋基本の出勤曜日以外）の日数 ＋ 特別休暇の日数
+// ・ランダムシフト：公休の規定日数（土日数＋1）＋ 特別休暇の日数
 function computeQuotaViolations(y,m,dim){
   const list=[];
   const satSun = countSatSun(y,m);
-  const expected = satSun+1;
   staff.forEach(s=>{
-    if(!isRandomType(s.type)) return;
-    let nonWork=0;
+    if(!isFixedType(s.type) && !isRandomType(s.type)) return;
+    const availDows = isFixedType(s.type) ? ((s.days && s.days.length>0) ? s.days : [1,2,3,4,5]) : null;
+    let nonWork=0, specialLeaveDays=0, calendarOffDays=0;
     const breakdown={}; // 種別ごとの内訳（原因を特定しやすくするため）
     for(let d=1;d<=dim;d++){
+      const dow=new Date(y,m,d).getDay();
+      const holidayName=holidays[dateStr(y,m,d)];
+      if(isFixedType(s.type) && (!availDows.includes(dow) || holidayName)) calendarOffDays++;
       const val=getShift(y,m,s.id,d)||'off';
       if(val==='work') continue;
       const lt=LEAVE_TYPES[val];
@@ -704,10 +732,13 @@ function computeQuotaViolations(y,m,dim){
       nonWork += amt;
       const label = lt ? lt.label : val;
       breakdown[label] = (breakdown[label]||0) + amt;
+      if(isSpecialLeaveCode(val)) specialLeaveDays += amt;
     }
+    // 固定シフト：土日祝・基本の出勤曜日以外の日数＋特別休暇の日数／ランダムシフト：公休の規定日数（土日数＋1）＋特別休暇の日数
+    const expected = isFixedType(s.type) ? (calendarOffDays + specialLeaveDays) : (satSun+1+specialLeaveDays);
     if(Math.abs(nonWork-expected)>0.01){
       const detail = Object.entries(breakdown).map(([label,cnt])=>`${label}${cnt}日`).join('・');
-      list.push(`${s.name}：今月の休み合計が${nonWork}日（規定は土日数+1の${expected}日）／内訳：${detail}`);
+      list.push(`${s.name}：今月の休み合計が${nonWork}日（規定は${expected}日）／内訳：${detail}`);
     }
   });
   return list;
@@ -890,12 +921,16 @@ async function generateShift(){
     }
     if(isRandomType(s.type)){
       const days = kibouMap[s.id] || {};
-      let leaveDaysUsed=0; // 有給・フレックス休暇など、既に確保されている休暇日数（半休は0.5日として計算）
+      let offReservedCount=0; // 公休希望(off/AM休/PM休)として、既に確保されている日数（半休は0.5日として計算）
       const reservedDays=new Set();
       Object.keys(days).forEach(dStr=>{
         reservedDays.add(Number(dStr));
-        const lt=LEAVE_TYPES[days[dStr]];
-        if(lt) leaveDaysUsed += lt.days;
+        const code=days[dStr];
+        const lt=LEAVE_TYPES[code];
+        if(!lt) return;
+        // 有給・フレックス休暇・子の看護休暇・欠勤・慶弔などの「特別休暇」は、
+        // 公休の枠を消費せず、公休とは別に追加でもらえる休みとして扱う（公休の残数計算には含めない）。
+        if(code==='off' || code==='off_am' || code==='off_pm') offReservedCount += lt.days;
       });
       // 基本の出勤曜日（未設定の場合は旧データ互換で全曜日とみなす）
       const availDows = (s.days && s.days.length>0) ? s.days : [0,1,2,3,4,5,6];
@@ -910,8 +945,8 @@ async function generateShift(){
         }
       }
       // 月の休日数（土日の日数＋1）に届いていない分だけ、基本の出勤曜日の中から追加で休みを均等に割り振る
-      // （フレックス休暇などの半休も0.5日分としてカウントし、既に確保済みの休暇日数を差し引く）
-      const quota = Math.max(0, Math.round(satSun+1-leaveDaysUsed-autoOffCount));
+      // （公休希望として確保済みの日数だけを差し引く。特別休暇はここでは差し引かない＝公休とは別枠で追加される）
+      const quota = Math.max(0, Math.round(satSun+1-offReservedCount-autoOffCount));
       const candidateDays=[];
       for(let d=1;d<=dim;d++){
         if(reservedDays.has(d)) continue;
