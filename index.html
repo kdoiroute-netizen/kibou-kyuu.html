@@ -26,12 +26,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .sync-dot.saving{background:#f59e0b;animation:pulse .8s infinite}
 .sync-dot.error{background:#ef4444}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
 .main{max-width:1300px;margin:0 auto;padding:20px}
 .page{display:none}.page.on{display:block}
 .sec-title{font-size:17px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
 .card{background:var(--white);border-radius:12px;padding:20px;box-shadow:var(--shadow);margin-bottom:16px}
-
 /* STAFF TABLE */
 .staff-table{width:100%;border-collapse:collapse}
 .staff-table th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--border)}
@@ -52,7 +50,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .icon-btn:hover{border-color:var(--teal);color:var(--teal)}
 .add-btn{padding:8px 16px;border-radius:8px;background:var(--teal);color:#fff;border:none;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;font-family:inherit;transition:.15s}
 .add-btn:hover{background:#0e7490}
-
 /* RULES */
 .rule-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:20px}
 @media (max-width:900px){
@@ -79,7 +76,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .required-staff-check{display:flex;align-items:center;gap:6px;padding:4px 6px;font-size:12px;cursor:pointer;border-radius:4px}
 .required-staff-check:hover{background:var(--bg)}
 .required-staff-check input{margin:0;flex-shrink:0}
-
 /* SHIFT GRID */
 .month-nav{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .month-nav h2{font-size:18px;font-weight:700;flex:1}
@@ -90,7 +86,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .gen-btn:disabled{background:var(--gray2);cursor:not-allowed}
 .save-btn{padding:8px 18px;border-radius:8px;background:var(--green);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:.15s;display:flex;align-items:center;gap:6px}
 .save-btn:hover{background:#15803d}
-
 .shift-wrap{overflow-x:auto;border-radius:12px;box-shadow:var(--shadow);overflow-y:visible}
 .shift-table{width:100%;border-collapse:collapse;background:#fff;min-width:900px;table-layout:fixed}
 .shift-table th{padding:8px 2px;font-size:11px;font-weight:600;color:#fff;background:var(--navy);border-right:1px solid rgba(255,255,255,.1);text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 2px 0 var(--navy);width:34px}
@@ -112,7 +107,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .viol-panel ul{list-style:none;display:flex;flex-direction:column;gap:4px}
 .viol-panel li{font-size:12px;color:#7f1d1d;display:flex;gap:6px;align-items:flex-start}
 .viol-panel li::before{content:"⚠";flex-shrink:0}
-
 /* 希望休パネル */
 .kibou-panel{background:var(--yellow-light);border:1.5px solid #fcd34d;border-radius:10px;padding:14px 16px;margin-bottom:16px}
 .kibou-panel h4{font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:8px}
@@ -122,7 +116,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .kibou-edit-btn{padding:3px 8px;border-radius:5px;background:var(--teal);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
 .kibou-del-btn{padding:3px 8px;border-radius:5px;background:var(--red);color:#fff;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;flex-shrink:0}
 .kibou-btn-group{display:flex;gap:4px;flex-shrink:0}
-
 /* 希望休編集モーダル内のカレンダー */
 .kibou-cal-header{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:3px}
 .kibou-cal-label{text-align:center;font-size:10px;font-weight:700;color:var(--gray)}
@@ -134,7 +127,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .kibou-type-tabs{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
 .kibou-type-tab{padding:5px 10px;border-radius:16px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:.1s}
 .kibou-type-tab.on{color:#fff;border-color:transparent}
-
 /* MODAL */
 .overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:500;align-items:center;justify-content:center}
 .overlay.on{display:flex}
@@ -178,7 +170,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </style>
 </head>
 <body>
-
 <div class="header">
   <div class="header-logo">シフト<span>管理</span></div>
   <div class="sync-status">
@@ -195,7 +186,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="htab" onclick="showPage('accounts',this)">🔐 アカウント</button>
   </div>
 </div>
-
 <div class="auth-overlay" id="auth-overlay">
   <div class="auth-card">
     <div class="auth-logo">シフト<span>管理</span></div>
@@ -209,12 +199,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <p class="modal-sub" style="margin-top:14px;margin-bottom:0">※このロックは簡易的なものです。重要な情報の保護には利用しないでください。</p>
   </div>
 </div>
-
 <div class="loading-overlay" id="loading-overlay">
   <div class="big-spinner"></div>
   <div id="loading-msg">データを読み込み中…</div>
 </div>
-
 <div class="main">
   <!-- SHIFT PAGE -->
   <div class="page on" id="page-shift">
@@ -229,7 +217,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="viol-panel"></div>
     <div class="shift-wrap"><table class="shift-table" id="shift-table"></table></div>
   </div>
-
   <!-- STAFF PAGE -->
   <div class="page" id="page-staff">
     <div class="card">
@@ -243,7 +230,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </table>
     </div>
   </div>
-
   <!-- RULES PAGE -->
   <div class="page" id="page-rules">
     <div class="card">
@@ -252,7 +238,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <button class="add-btn" onclick="saveRules()">💾 ルールを保存</button>
     </div>
   </div>
-
   <!-- KIBOU PAGE -->
   <div class="page" id="page-kibou">
     <div class="card">
@@ -263,7 +248,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="kibou-list"></div>
     </div>
   </div>
-
   <!-- ZANDAKA (残日数) PAGE -->
   <div class="page" id="page-zandaka">
     <div class="card">
@@ -289,7 +273,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </table>
     </div>
   </div>
-
   <!-- ACCOUNTS PAGE -->
   <div class="page" id="page-accounts">
     <div class="card">
@@ -307,7 +290,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
   </div>
 </div>
-
 <!-- STAFF MODAL -->
 <div class="overlay" id="staff-overlay" onclick="closeStaffModal(event)">
 <div class="modal">
@@ -360,7 +342,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 </div>
-
 <!-- SHIFT MODAL -->
 <div class="overlay" id="shift-overlay" onclick="closeShiftModal(event)">
 <div class="modal">
@@ -373,7 +354,6 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 </div>
-
 <!-- KIBOU EDIT MODAL -->
 <div class="overlay" id="kibou-overlay" onclick="closeKibouModal(event)">
 <div class="modal" style="width:520px">
@@ -402,9 +382,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 </div>
-
 <div class="toast" id="toast"></div>
-
 <script>
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbzoFNlBRZSjI1zvyCCpHyBpb7555mvaiG0-w8tca1MSSlaouNhNOHaVhAYXxPa49TJH/exec';
 const DAYS = ['日','月','火','水','木','金','土'];
@@ -415,12 +393,13 @@ const TYPE_MAP = {
   random:  {label:'ランダムシフト',time:'9:00〜18:00'},
 };
 const COLORS=['#0891b2','#7c3aed','#d97706','#16a34a','#e85555','#c65b8a','#4a90d9','#5e8a45','#8a5b45','#456b8a','#8a456b','#6b8a45','#456b6b','#8a6b45','#4a5ea7','#a75e4a','#5ea74a','#a74a5e','#5e4aa7','#a7855e'];
-
 // シフトの各セルが取りうる値。「公休」と「特別休暇（有給など）」を別枠で管理する。
 // days: 1 = 全休扱い、0.5 = 半休扱い（AM/PM）、0 = 出勤（休みとしてカウントしない）
 const LEAVE_TYPES = {
   work:       {label:'出勤',            short:'出勤', bg:'#0891b2', color:'#fff',     days:0},
   off:        {label:'公休',            short:'休み', bg:'#f1f5f9', color:'#6b7280',  days:1},
+  off_am:     {label:'AM休',            short:'AM休', bg:'#f1f5f9', color:'#6b7280',  days:0.5},
+  off_pm:     {label:'PM休',            short:'PM休', bg:'#f1f5f9', color:'#6b7280',  days:0.5},
   paid:       {label:'有給',            short:'有給', bg:'#dcfce7', color:'#16a34a',  days:1},
   paid_am:    {label:'AM有給',          short:'AM有', bg:'#dcfce7', color:'#16a34a',  days:0.5},
   paid_pm:    {label:'PM有給',          short:'PM有', bg:'#dcfce7', color:'#16a34a',  days:0.5},
@@ -433,10 +412,8 @@ const LEAVE_TYPES = {
   absence_am: {label:'AM欠勤',          short:'AM欠', bg:'#fee2e2', color:'#dc2626',  days:0.5},
   absence_pm: {label:'PM欠勤',          short:'PM欠', bg:'#fee2e2', color:'#dc2626',  days:0.5},
 };
-
 // 名前を照合するときは前後の余分な空白や全角スペースを無視して比べる
-function normName(n){ return (n||'').toString().trim().replace(/\u3000/g,' ').replace(/\s+/g,' '); }
-
+function normName(n){ return (n||'').toString().trim().replace(/　/g,' ').replace(/\s+/g,' '); }
 let staff = [];
 let rules = {0:{minF:1,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},1:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},2:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},3:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},4:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},5:{minF:2,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]},6:{minF:1,minM:1,minTotal:0,maxTotal:0,minST:0,required:[]}};
 let shifts = {};
@@ -447,7 +424,6 @@ let selectedShiftValue = null;
 let editingDays = [];
 let holidays = {};
 let leaveSettings = {paidBaseDays:10, paidIncrement:1, flexDays:6, childDaysPerKid:3};
-
 function getNow(){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()+monthOffset); return d; }
 function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
 function initials(n){ if(!n) return '??'; return n.replace(/\s+/g,'').slice(0,2)||n.slice(0,2); }
@@ -467,7 +443,6 @@ function parseLocalDate(str){
   if(!m) return new Date(str);
   return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
 }
-
 // SYNC STATUS
 function setSyncStatus(status, msg){
   const dot=document.getElementById('sync-dot');
@@ -475,7 +450,6 @@ function setSyncStatus(status, msg){
   dot.className='sync-dot'+(status==='saving'?' saving':status==='error'?' error':'');
   lbl.textContent=msg;
 }
-
 // GAS FETCH
 async function gasGet(action){
   const res = await fetch(`${GAS_URL}?action=${action}`);
@@ -484,7 +458,6 @@ async function gasGet(action){
 async function gasPost(data){
   await fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
 }
-
 // 日本の祝日データを取得する（表示の色分け専用。人数ルールには影響させない）
 async function loadHolidays(){
   try {
@@ -495,7 +468,6 @@ async function loadHolidays(){
     holidays = {};
   }
 }
-
 // LOAD ALL
 async function loadAll(){
   document.getElementById('loading-overlay').classList.add('on');
@@ -535,7 +507,6 @@ async function loadAll(){
   renderLegend();
   renderShift();
 }
-
 function renderLegend(){
   const items = ['work','off','paid','flex','child','bereave','absence'];
   let html = items.map(code=>{
@@ -545,7 +516,6 @@ function renderLegend(){
   html += `<div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div>祝日</div>`;
   document.getElementById('legend').innerHTML = html;
 }
-
 // SAVE STAFF
 async function saveStaffToSheet(){
   setSyncStatus('saving','保存中…');
@@ -554,7 +524,6 @@ async function saveStaffToSheet(){
     setSyncStatus('ok','同期済み');
   } catch(e){ setSyncStatus('error','保存失敗'); }
 }
-
 // SAVE SHIFTS
 async function saveShiftToSheet(){
   setSyncStatus('saving','保存中…');
@@ -573,7 +542,6 @@ async function saveShiftToSheet(){
     showToast('💾 シフトを保存しました');
   } catch(e){ setSyncStatus('error','保存失敗'); showToast('❌ 保存に失敗しました'); }
 }
-
 // NAV
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
@@ -587,9 +555,7 @@ function showPage(id,btn){
   if(id==='accounts') renderAccounts();
   if(id==='shift') renderShift();
 }
-
 function changeMonth(d){ monthOffset+=d; renderShift(); }
-
 // RENDER SHIFT
 function renderShift(){
   const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
@@ -599,7 +565,6 @@ function renderShift(){
   ensureShifts(y,m);
   const days=[];
   for(let d=1;d<=dim;d++){ const dow=new Date(y,m,d).getDay(); days.push({d,dow}); }
-
   let hdr='<thead><tr><th>スタッフ</th>';
   days.forEach(({d,dow})=>{
     const isTod=isThisMonth&&d===todayD.getDate();
@@ -610,7 +575,6 @@ function renderShift(){
     hdr+=`<th class="${cls}"${titleAttr}><div class="th-date">${d}</div><div class="th-day">${DAYS[dow]}</div></th>`;
   });
   hdr+='</tr></thead>';
-
   let body='<tbody>';
   staff.forEach((s,si)=>{
     const color=COLORS[(si+1)%COLORS.length]||COLORS[0];
@@ -628,7 +592,6 @@ function renderShift(){
     });
     row+='</tr>'; body+=row;
   });
-
   // 集計行
   let sumRow='<tr style="background:var(--navy)">';
   sumRow+=`<td style="color:#fff;font-size:11px;font-weight:600;padding:6px 10px;border-right:2px solid rgba(255,255,255,.1);background:var(--navy);position:sticky;left:0;z-index:1">出勤人数</td>`;
@@ -675,23 +638,81 @@ function renderShift(){
   const tableEl = document.getElementById('shift-table');
   tableEl.innerHTML = hdr + body;
   tableEl.style.minWidth = (130 + dim*34) + 'px'; // 日数分の幅を必ず確保し、横スクロールで見せる（文字が潰れるのを防ぐ）
-
   const vp=document.getElementById('viol-panel');
   const shortViol=violations.filter(v=>!v.includes('⚡'));
   const overViol=violations.filter(v=>v.includes('⚡')).map(v=>v.replace('⚡',''));
   let vpHtml='';
   if(shortViol.length>0) vpHtml+=`<div class="viol-panel"><h4>🔴 人数不足 ${shortViol.length}件</h4><ul>${shortViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
   if(overViol.length>0) vpHtml+=`<div class="viol-panel" style="background:var(--yellow-light);border-color:#fcd34d"><h4 style="color:var(--yellow)">🟡 人数過多 ${overViol.length}件</h4><ul style="color:#78350f">${overViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
+  // すでに何かシフトが入力済みの月だけ、連勤・公休日数のチェックを行う（未生成の空月で毎回警告が出るのを防ぐ）
+  const monthShiftMap = shifts[getShiftKey(y,m)] || {};
+  const hasAnySchedule = Object.keys(monthShiftMap).some(sid => Object.keys(monthShiftMap[sid]||{}).length>0);
+  if(hasAnySchedule){
+    const consecViol = computeConsecutiveViolations(y,m,dim);
+    const quotaViol = computeQuotaViolations(y,m,dim);
+    if(consecViol.length>0) vpHtml+=`<div class="viol-panel" style="background:#e0f2fe;border-color:#7dd3fc"><h4 style="color:#0369a1">🔵 連勤超過 ${consecViol.length}件（6連勤以上）</h4><ul style="color:#075985">${consecViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
+    if(quotaViol.length>0) vpHtml+=`<div class="viol-panel" style="background:var(--purple-light);border-color:#c4b5fd"><h4 style="color:var(--purple)">🟣 休み日数の不整合 ${quotaViol.length}件</h4><ul style="color:#5b21b6">${quotaViol.map(v=>`<li>${v}</li>`).join('')}</ul></div>`;
+  }
   vp.innerHTML=vpHtml;
 }
-
+// スタッフの連勤日数をチェックする（前月末からの連続勤務も考慮し、6連勤以上を警告する）
+function computeConsecutiveViolations(y,m,dim){
+  const prevM = m===0?11:m-1, prevY = m===0?y-1:y;
+  const prevDim = daysInMonth(prevY,prevM);
+  const list=[];
+  staff.forEach(s=>{
+    const seq=[];
+    for(let i=6;i>=1;i--){
+      const d = prevDim-i+1;
+      if(d>=1) seq.push({y:prevY,m:prevM,d,work:(getShift(prevY,prevM,s.id,d)||'off')==='work'});
+    }
+    for(let d=1;d<=dim;d++){
+      seq.push({y,m,d,work:(getShift(y,m,s.id,d)||'off')==='work'});
+    }
+    let i=0;
+    while(i<seq.length){
+      if(!seq[i].work){ i++; continue; }
+      let j=i;
+      while(j<seq.length && seq[j].work) j++;
+      const runLen=j-i;
+      if(runLen>5){
+        const startItem=seq[i], endItem=seq[j-1];
+        if(startItem.m===m || endItem.m===m){
+          list.push(`${s.name}：${startItem.m+1}/${startItem.d}〜${endItem.m+1}/${endItem.d}（${runLen}連勤）`);
+        }
+      }
+      i=j;
+    }
+  });
+  return list;
+}
+// ランダムシフトのスタッフについて、今月の休み関連日数の合計が「土日の日数＋1」と一致しているかをチェックする
+// （手動編集や複数の希望休申請などで規定日数からズレていないか、後からでも確認できるようにする）
+function computeQuotaViolations(y,m,dim){
+  const list=[];
+  const satSun = countSatSun(y,m);
+  const expected = satSun+1;
+  staff.forEach(s=>{
+    if(!isRandomType(s.type)) return;
+    let nonWork=0;
+    for(let d=1;d<=dim;d++){
+      const val=getShift(y,m,s.id,d)||'off';
+      if(val==='work') continue;
+      const lt=LEAVE_TYPES[val];
+      nonWork += lt ? lt.days : 1;
+    }
+    if(Math.abs(nonWork-expected)>0.01){
+      list.push(`${s.name}：今月の休み合計が${nonWork}日（規定は土日数+1の${expected}日）`);
+    }
+  });
+  return list;
+}
 // その月の土日の日数を数える（ランダムシフトの休日数の基準に使う）
 function countSatSun(y,m){
   const dim=daysInMonth(y,m); let c=0;
   for(let d=1;d<=dim;d++){ const dow=new Date(y,m,d).getDay(); if(dow===0||dow===6) c++; }
   return c;
 }
-
 // n個の休みの日を、候補日の中からできるだけ均等な間隔で選ぶ
 function pickEvenlySpaced(arr, n){
   if(n<=0||arr.length===0) return [];
@@ -711,10 +732,9 @@ function pickEvenlySpaced(arr, n){
   }
   return [...picked];
 }
-
 function countWorkGender(y,m,d,gender){ return staff.filter(s=>s.gender===gender && getShift(y,m,s.id,d)==='work').length; }
 function countWorkTotal(y,m,d){ return staff.filter(s=>getShift(y,m,s.id,d)==='work').length; }
-
+function countWorkJob(y,m,d,job){ return staff.filter(s=>(s.job||'PT')===job && getShift(y,m,s.id,d)==='work').length; }
 // 人数不足の日を、ランダムシフトスタッフの「公休」を別日と入れ替えることで補う
 // （希望休や特別休暇が入っている日、固定シフトの土日は動かさない）
 // ※この入れ替えは対象スタッフの「基本の出勤曜日」に関係なく行われるため、
@@ -724,26 +744,38 @@ function fixShortages(y,m,dim,kibouMap){
     const dow=new Date(y,m,d).getDay();
     const r=rules[dow];
     let guard=0;
-    while(countWorkGender(y,m,d,'f')<r.minF && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'f',kibouMap)) break; }
+    while(countWorkGender(y,m,d,'f')<r.minF && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,{gender:'f'},kibouMap)) break; }
     guard=0;
-    while(countWorkGender(y,m,d,'m')<r.minM && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,'m',kibouMap)) break; }
+    while(countWorkGender(y,m,d,'m')<r.minM && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,{gender:'m'},kibouMap)) break; }
     guard=0;
-    while(r.minTotal && countWorkTotal(y,m,d)<r.minTotal && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,null,kibouMap)) break; }
+    while(r.minST>0 && countWorkJob(y,m,d,'ST')<r.minST && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,{job:'ST'},kibouMap)) break; }
+    guard=0;
+    while(r.minTotal && countWorkTotal(y,m,d)<r.minTotal && guard<50){ guard++; if(!swapInRandomStaff(y,m,d,dim,{},kibouMap)) break; }
   }
 }
-function swapInRandomStaff(y,m,d,dim,genderFilter,kibouMap){
+function swapInRandomStaff(y,m,d,dim,filter,kibouMap){
+  filter = filter || {};
+  const rd = rules[new Date(y,m,d).getDay()];
+  // 追加で出勤させると、その日の上限人数を超えてしまう場合は調整しない
+  if(rd.maxTotal>0 && countWorkTotal(y,m,d)+1>rd.maxTotal) return false;
   // 希望休・特別休暇でその日が確保されているスタッフは、人数調整の対象から除外する
-  const pool=staff.filter(s=>isRandomType(s.type) && getShift(y,m,s.id,d)==='off' && !(kibouMap[s.id] && kibouMap[s.id][d]) && (!genderFilter||s.gender===genderFilter));
+  const pool=staff.filter(s=>isRandomType(s.type) && getShift(y,m,s.id,d)==='off' && !(kibouMap[s.id] && kibouMap[s.id][d])
+    && (!filter.gender||s.gender===filter.gender)
+    && (!filter.job||(s.job||'PT')===filter.job));
   for(const s of pool){
+    // このスタッフをd日に出勤させると6連勤以上になってしまう場合は、他のスタッフで代替できないか探す
+    if(wouldCreateLongRun(y,m,s.id,d,dim)) continue;
     for(let d2=1;d2<=dim;d2++){
       if(d2===d) continue;
       if(getShift(y,m,s.id,d2)!=='work') continue;
       const dow2=new Date(y,m,d2).getDay();
       const r2=rules[dow2];
-      let wF2=countWorkGender(y,m,d2,'f'), wM2=countWorkGender(y,m,d2,'m');
+      let wF2=countWorkGender(y,m,d2,'f'), wM2=countWorkGender(y,m,d2,'m'), wST2=countWorkJob(y,m,d2,'ST');
       if(s.gender==='f') wF2--; else wM2--;
+      if((s.job||'PT')==='ST') wST2--;
       const total2=wF2+wM2;
-      if(wF2>=r2.minF && wM2>=r2.minM && total2>=(r2.minTotal||0)){
+      const stOk2 = !(r2.minST>0) || wST2>=r2.minST;
+      if(wF2>=r2.minF && wM2>=r2.minM && total2>=(r2.minTotal||0) && stOk2){
         setShift(y,m,s.id,d,'work');
         setShift(y,m,s.id,d2,'off');
         return true;
@@ -752,16 +784,67 @@ function swapInRandomStaff(y,m,d,dim,genderFilter,kibouMap){
   }
   return false;
 }
-
+// 指定した休みの日を出勤に変えた場合、その場所に新たに6連勤以上が生まれてしまわないかを確認する
+function wouldCreateLongRun(y,m,sid,day,dim){
+  let left=0;
+  for(let d=day-1; d>=1; d--){ if((getShift(y,m,sid,d)||'off')==='work') left++; else break; }
+  let right=0;
+  for(let d=day+1; d<=dim; d++){ if((getShift(y,m,sid,d)||'off')==='work') right++; else break; }
+  return (left+right+1) > 5;
+}
+// ランダムシフトのスタッフが6連勤以上にならないよう、可能な範囲で休みの位置を月内でずらす。
+// （希望休の日数や、人数ルールを崩さない範囲でのみ調整する。安全に直せない場合はそのまま残り、
+//   renderShift側の連勤チェックで管理者に知らせる）
+function breakLongRuns(y,m,dim){
+  staff.filter(s=>isRandomType(s.type)).forEach(s=>{
+    let guard=0, changed=true;
+    while(changed && guard<30){
+      changed=false; guard++;
+      let i=1;
+      while(i<=dim){
+        if((getShift(y,m,s.id,i)||'off')!=='work'){ i++; continue; }
+        let j=i;
+        while(j<=dim && (getShift(y,m,s.id,j)||'off')==='work') j++;
+        const runLen=j-i;
+        if(runLen>5){
+          const breakDay=i+5; // この連勤の6日目
+          if(breakDay<j){
+            const dow=new Date(y,m,breakDay).getDay();
+            const r=rules[dow];
+            let wF=countWorkGender(y,m,breakDay,'f'), wM=countWorkGender(y,m,breakDay,'m'), wST=countWorkJob(y,m,breakDay,'ST');
+            if(s.gender==='f') wF--; else wM--;
+            if((s.job||'PT')==='ST') wST--;
+            const total=wF+wM;
+            const safeToRest = wF>=r.minF && wM>=r.minM && total>=(r.minTotal||0) && (!(r.minST>0) || wST>=r.minST);
+            if(safeToRest){
+              for(let off=1; off<=dim; off++){
+                if(off===breakDay) continue;
+                if((getShift(y,m,s.id,off)||'off')!=='off') continue;
+                const dow2=new Date(y,m,off).getDay();
+                const r2=rules[dow2];
+                if(r2.maxTotal>0 && countWorkTotal(y,m,off)+1>r2.maxTotal) continue;
+                // この休みを出勤に変えることで、別の場所に新たな連勤（6日以上）が生まれないか確認する
+                if(wouldCreateLongRun(y,m,s.id,off,dim)) continue;
+                setShift(y,m,s.id,breakDay,'off');
+                setShift(y,m,s.id,off,'work');
+                changed=true;
+                break;
+              }
+            }
+          }
+        }
+        i=j;
+      }
+    }
+  });
+}
 // AUTO GENERATE
 async function generateShift(){
   const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
   const btn=document.getElementById('gen-btn');
   btn.disabled=true; btn.innerHTML='生成中…';
-
   const dim=daysInMonth(y,m);
   const monthStr=`${y}年${m+1}月`;
-
   // 希望休・特別休暇データを取得（{staffId:{day:種別コード}}）
   let kibouMap={};
   try {
@@ -778,39 +861,36 @@ async function generateShift(){
       });
     });
   } catch(e){ console.log('希望休取得スキップ', e); }
-
   // ベースはいったん全員「出勤」
   staff.forEach(s=>{ for(let d=1;d<=dim;d++) setShift(y,m,s.id,d,'work'); });
-
   // 希望休・特別休暇を適用（最優先）
   staff.forEach(s=>{
     const days = kibouMap[s.id] || {};
     Object.keys(days).forEach(dStr=> setShift(y,m,s.id,Number(dStr),days[dStr]));
   });
-
   const satSun = countSatSun(y,m);
-
   staff.forEach(s=>{
     if(isFixedType(s.type)){
+      // 固定シフトのスタッフは「基本の出勤曜日」以外・土日・祝日をすべて休みにする
+      const fixedAvailDows = (s.days && s.days.length>0) ? s.days : [1,2,3,4,5];
       for(let d=1;d<=dim;d++){
         if(getShift(y,m,s.id,d)!=='work') continue; // 既に休暇が入っている日はそのまま
         const dow=new Date(y,m,d).getDay();
-        if(dow===0||dow===6) setShift(y,m,s.id,d,'off');
+        const holidayName=holidays[dateStr(y,m,d)];
+        if(!fixedAvailDows.includes(dow) || holidayName) setShift(y,m,s.id,d,'off');
       }
     }
     if(isRandomType(s.type)){
       const days = kibouMap[s.id] || {};
-      let fullLeaveCount=0;
+      let leaveDaysUsed=0; // 有給・フレックス休暇など、既に確保されている休暇日数（半休は0.5日として計算）
       const reservedDays=new Set();
       Object.keys(days).forEach(dStr=>{
         reservedDays.add(Number(dStr));
         const lt=LEAVE_TYPES[days[dStr]];
-        if(lt && lt.days===1) fullLeaveCount++;
+        if(lt) leaveDaysUsed += lt.days;
       });
-
       // 基本の出勤曜日（未設定の場合は旧データ互換で全曜日とみなす）
       const availDows = (s.days && s.days.length>0) ? s.days : [0,1,2,3,4,5,6];
-
       // 基本の出勤曜日ではない日は、まず自動的に公休にする
       let autoOffCount=0;
       for(let d=1;d<=dim;d++){
@@ -821,21 +901,21 @@ async function generateShift(){
           autoOffCount++;
         }
       }
-
       // 月の休日数（土日の日数＋1）に届いていない分だけ、基本の出勤曜日の中から追加で休みを均等に割り振る
-      const quota = Math.max(0, satSun+1-fullLeaveCount-autoOffCount);
+      // （フレックス休暇などの半休も0.5日分としてカウントし、既に確保済みの休暇日数を差し引く）
+      const quota = Math.max(0, Math.round(satSun+1-leaveDaysUsed-autoOffCount));
       const candidateDays=[];
       for(let d=1;d<=dim;d++){
         if(reservedDays.has(d)) continue;
         const dow=new Date(y,m,d).getDay();
         if(!availDows.includes(dow)) continue; // 既にoff済み
+        if((rules[dow].required||[]).includes(s.id)) continue; // 必須指定日は、後で出勤に戻され休みが無駄になるため候補にしない
         candidateDays.push(d);
       }
       const offDays = pickEvenlySpaced(candidateDays, quota);
       offDays.forEach(d=> setShift(y,m,s.id,d,'off'));
     }
   });
-
   // 必須スタッフは強制出勤（希望休・特別休暇が入っている日は上書きしない）
   for(let d=1;d<=dim;d++){
     const dow=new Date(y,m,d).getDay();
@@ -845,15 +925,16 @@ async function generateShift(){
       if(!isReserved && getShift(y,m,rid,d)==='off') setShift(y,m,rid,d,'work');
     });
   }
-
   // 人数不足を、ランダムシフトの休日入れ替えで調整（基本の出勤曜日以外にも出勤させることがある。希望休の日は対象外）
   fixShortages(y,m,dim,kibouMap);
-
+  // 6連勤以上にならないよう、可能な範囲で休みの位置を調整する
+  breakLongRuns(y,m,dim);
+  // 休みの位置調整で生じた人数不足を念のためもう一度埋める
+  fixShortages(y,m,dim,kibouMap);
   renderShift();
   showToast('✅ シフトを自動生成しました');
   btn.disabled=false; btn.innerHTML='✨ AI生成';
 }
-
 // SHIFT MODAL
 function openShiftModal(sid,d){
   const now=getNow(); const y=now.getFullYear(),m=now.getMonth();
@@ -876,7 +957,6 @@ function selectShift(val,btn){
 }
 function saveShiftEdit(){ if(!editingShift) return; setShift(editingShift.y,editingShift.m,editingShift.sid,editingShift.d,selectedShiftValue); closeShiftModal(); renderShift(); }
 function closeShiftModal(e){ if(e&&e.target!==document.getElementById('shift-overlay')) return; document.getElementById('shift-overlay').classList.remove('on'); editingShift=null; }
-
 // STAFF
 const JOB_LABELS = {PT:'PT',OT:'OT',ST:'ST',other:'その他'};
 const JOB_COLORS = {PT:'#0891b2',OT:'#16a34a',ST:'#7c3aed',other:'#6b7280'};
@@ -893,7 +973,6 @@ function renderStaff(){
     return `<tr><td><div class="staff-name-cell"><div class="avatar" style="background:${color}">${initials(s.name)}</div><strong>${s.name}</strong></div></td><td>${jBadge}</td><td>${gBadge}</td><td>${tBadge}</td><td><div class="day-chips">${dayChips}</div></td><td style="font-size:12px">${hireDateText}</td><td><button class="icon-btn" onclick="openStaffModal(${s.id})">編集</button></td></tr>`;
   }).join('');
 }
-
 function openStaffModal(id){
   editingStaffId=id||null;
   const s=id?staff.find(x=>x.id===id):null;
@@ -947,7 +1026,6 @@ async function deleteStaff(){
   showToast('🗑️ 削除しました');
 }
 function closeStaffModal(e){ if(e&&e.target!==document.getElementById('staff-overlay')) return; document.getElementById('staff-overlay').classList.remove('on'); editingStaffId=null; }
-
 // RULES
 function renderRules(){
   document.getElementById('rule-grid').innerHTML=DAYS.map((dn,dow)=>{
@@ -984,7 +1062,6 @@ async function saveRules(){
   } catch(e){ setSyncStatus('error','保存失敗'); }
   renderShift();
 }
-
 // KIBOU
 async function loadKibou(){
   document.getElementById('kibou-list').innerHTML='<div style="color:var(--gray);font-size:13px">読み込み中…</div>';
@@ -1012,13 +1089,11 @@ async function loadKibou(){
     }).join('');
   } catch(e){ document.getElementById('kibou-list').innerHTML='<div style="color:var(--red);font-size:13px">読み込みに失敗しました</div>'; }
 }
-
 // 希望休編集モーダル
 let editingKibou = null; // 編集中の申請データ
 let kibouEditSelections = {}; // {日付: true} 編集中の選択日
 let kibouEditType = 'off';
 let kibouCalY, kibouCalM;
-
 function openKibouModal(k){
   editingKibou = k;
   kibouEditType = (k.type && LEAVE_TYPES[k.type]) ? k.type : 'off';
@@ -1126,11 +1201,9 @@ async function deleteKibou(){
     loadKibou();
   } catch(e){ setSyncStatus('error','削除失敗'); showToast('❌ 削除に失敗しました'); }
 }
-
 function applyKibouFromObj(k){
   applyKibou(k.name, k.dates, k.type);
 }
-
 function applyKibou(name, dates, type){
   const s=staff.find(x=>normName(x.name)===normName(name));
   if(!s){ showToast(`❌ 「${name}」がスタッフ一覧にいません`); return; }
@@ -1148,7 +1221,6 @@ function applyKibou(name, dates, type){
   showToast(`✅ ${name}の${LEAVE_TYPES[code].label}をシフトに反映しました（${target.getMonth()+1}月）`);
   saveShiftToSheet(); // 反映しただけで保存し忘れることがないよう、自動でスプレッドシートにも保存する
 }
-
 // ZANDAKA（休暇残日数）
 // 子の看護休暇：4月始まり〜翌3月末（全員共通）
 function getFiscalYearRange(baseDate){
@@ -1164,7 +1236,6 @@ function getCalendarYearRange(baseDate){
   return {start:new Date(y,0,1), end:new Date(y,11,31), label:`${y}年1月〜12月`};
 }
 function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
-
 // 有給：入社6か月後に初回付与、以後1年ごとに1日ずつ増加（上限なし）。
 // 各回の付与分は「付与から2年」で失効する（＝前回付与分は今回の付与と同時に消滅し、
 // 今回付与した分は次回・次々回の付与のタイミングで消滅する、という繰り返し）。
@@ -1176,7 +1247,6 @@ function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, incre
   if(isNaN(hire.getTime())) return null;
   const firstGrant = new Date(hire.getFullYear(), hire.getMonth()+6, hire.getDate());
   if(today < firstGrant) return {notYet:true, firstGrant};
-
   // 付与イベントを列挙する
   const grants = [];
   let n=1;
@@ -1187,16 +1257,13 @@ function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, incre
     gDate = new Date(gDate.getFullYear()+1, gDate.getMonth(), gDate.getDate());
   }
   const lastGrant = grants[grants.length-1];
-
   // 付与イベントと消化イベントを日付順に並べてシミュレーションする
   const events = grants.map(g=>({date:g.date, type:'grant', amount:g.amount}));
   paidUsages.forEach(u=> events.push({date:u.date, type:'use', amount:u.days}));
   events.sort((a,b)=> a.date-b.date || (a.type==='grant'?-1:1));
-
   let carry = 0;   // 前回付与分の残り（次の付与タイミングで失効する）
   let current = 0; // 直近付与分の残り
   let usedSinceLastGrant = 0; // 直近付与日からの消化日数（年5日ルールの判定用）
-
   events.forEach(e=>{
     if(e.type==='grant'){
       carry = current; // 前回分はここでいったん繰り越し対象になり、次の付与で消滅する
@@ -1209,7 +1276,6 @@ function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, incre
       usedSinceLastGrant += (fromCarry+fromCurrent);
     }
   });
-
   return {
     remain: carry + current,
     carry, current,
@@ -1217,7 +1283,6 @@ function computePaidLeaveBalance(hireDateStr, paidUsages, today, baseDays, incre
     lastGrant
   };
 }
-
 function saveLeaveSettings(){
   leaveSettings = {
     paidBaseDays: parseFloat(document.getElementById('zd-paid-base').value) || 0,
@@ -1237,15 +1302,12 @@ async function renderZandaka(){
   document.getElementById('zd-paid-inc').value = leaveSettings.paidIncrement;
   document.getElementById('zd-flex').value = leaveSettings.flexDays;
   document.getElementById('zd-child').value = leaveSettings.childDaysPerKid;
-
   const now = new Date();
   const childFY = getFiscalYearRange(now);
   const flexCY = getCalendarYearRange(now);
   document.getElementById('zd-period-note').textContent =
     `フレックス休暇：${flexCY.label}／子の看護休暇：${childFY.label}／有給：入社日を基準にスタッフごとに異なります（下表に表示、付与から2年で失効）`;
-
   document.getElementById('zandaka-tbody').innerHTML = `<tr><td colspan="4" style="color:var(--gray);font-size:13px;text-align:center;padding:16px">読み込み中…</td></tr>`;
-
   // 希望休の申請内容（未確定分も含む）から集計する
   const paidUsages = {}; // {staffId: [{date, days}, ...]}
   const usedFlexChild = {}; // {staffId: {flex:0, child:0}}
@@ -1275,19 +1337,16 @@ async function renderZandaka(){
       });
     });
   } catch(e){ console.log('残日数集計に失敗しました', e); }
-
   const simpleCell = (usedDays, total)=>{
     const remain = total - usedDays;
     const color = remain < 0 ? 'var(--red)' : remain === 0 ? 'var(--yellow)' : 'var(--navy)';
     return `<span style="font-weight:700;color:${color}">残${remain}</span><span style="color:var(--gray);font-size:11px"> ／ 消化${usedDays} ／ 付与${total}</span>`;
   };
-
   document.getElementById('zandaka-tbody').innerHTML = staff.map(s=>{
     const flexTotal = leaveSettings.flexDays;
     const childTotal = (s.kids||0) * leaveSettings.childDaysPerKid;
     const flexUsedTotal = (usedFlexChild[s.id].flex||0) + (s.manualFlexUsed||0);
     const childUsedTotal = (usedFlexChild[s.id].child||0) + (s.manualChildUsed||0);
-
     let paidCell;
     if(!s.hireDate){
       paidCell = '<span style="color:var(--red);font-size:12px">入社日未設定</span>';
@@ -1312,7 +1371,6 @@ async function renderZandaka(){
           + `<div style="margin-top:2px">${complyText}</div>`;
       }
     }
-
     return `<tr>
       <td><strong>${s.name}</strong></td>
       <td>${paidCell}</td>
@@ -1321,10 +1379,8 @@ async function renderZandaka(){
     </tr>`;
   }).join('');
 }
-
 // TOAST
 function showToast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('on'); setTimeout(()=>t.classList.remove('on'),2500); }
-
 // AUTH（簡易ログイン。管理者アカウント一覧はGASから取得して照合する）
 let adminAccounts = [];
 async function initAuth(){
@@ -1332,7 +1388,6 @@ async function initAuth(){
     const res = await gasGet('loadAdminAccounts');
     adminAccounts = res.admins || [];
   } catch(e){ adminAccounts = []; }
-
   if(adminAccounts.length===0){
     document.getElementById('auth-setup-note').style.display='block';
     document.getElementById('auth-overlay').classList.remove('hide');
@@ -1353,14 +1408,12 @@ async function submitAuth(){
   const errEl = document.getElementById('auth-error');
   errEl.style.display='none';
   if(!name || !pw){ errEl.textContent='お名前とパスワードを入力してください'; errEl.style.display='block'; return; }
-
   if(adminAccounts.length===0){
     // セキュリティのため、Web画面からの自動登録は行わない。最初の1件はスプレッドシートで直接登録する必要がある。
     errEl.textContent='まだ1件もアカウントがありません。スプレッドシートで最初の1件を直接登録してください（下の説明を参照）。';
     errEl.style.display='block';
     return;
   }
-
   const match = adminAccounts.find(a=> a.name===name && a.password===pw);
   if(match){
     localStorage.setItem('shiftAdminAuthed','true');
@@ -1403,7 +1456,6 @@ async function deleteAdminAccount(i){
   renderAccounts();
   showToast('🗑️ 削除しました');
 }
-
 // INIT
 initAuth();
 </script>
