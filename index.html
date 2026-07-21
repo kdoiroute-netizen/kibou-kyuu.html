@@ -695,14 +695,19 @@ function computeQuotaViolations(y,m,dim){
   staff.forEach(s=>{
     if(!isRandomType(s.type)) return;
     let nonWork=0;
+    const breakdown={}; // 種別ごとの内訳（原因を特定しやすくするため）
     for(let d=1;d<=dim;d++){
       const val=getShift(y,m,s.id,d)||'off';
       if(val==='work') continue;
       const lt=LEAVE_TYPES[val];
-      nonWork += lt ? lt.days : 1;
+      const amt = lt ? lt.days : 1;
+      nonWork += amt;
+      const label = lt ? lt.label : val;
+      breakdown[label] = (breakdown[label]||0) + amt;
     }
     if(Math.abs(nonWork-expected)>0.01){
-      list.push(`${s.name}：今月の休み合計が${nonWork}日（規定は土日数+1の${expected}日）`);
+      const detail = Object.entries(breakdown).map(([label,cnt])=>`${label}${cnt}日`).join('・');
+      list.push(`${s.name}：今月の休み合計が${nonWork}日（規定は土日数+1の${expected}日）／内訳：${detail}`);
     }
   });
   return list;
@@ -795,7 +800,9 @@ function wouldCreateLongRun(y,m,sid,day,dim){
 // ランダムシフトのスタッフが6連勤以上にならないよう、可能な範囲で休みの位置を月内でずらす。
 // （希望休の日数や、人数ルールを崩さない範囲でのみ調整する。安全に直せない場合はそのまま残り、
 //   renderShift側の連勤チェックで管理者に知らせる）
-function breakLongRuns(y,m,dim){
+// ※希望休・特別休暇で確保された「公休」は、たとえ見た目が同じ「休み」でも絶対に動かさない（kibouMapで判定）
+function breakLongRuns(y,m,dim,kibouMap){
+  kibouMap = kibouMap || {};
   staff.filter(s=>isRandomType(s.type)).forEach(s=>{
     let guard=0, changed=true;
     while(changed && guard<30){
@@ -820,6 +827,7 @@ function breakLongRuns(y,m,dim){
               for(let off=1; off<=dim; off++){
                 if(off===breakDay) continue;
                 if((getShift(y,m,s.id,off)||'off')!=='off') continue;
+                if(kibouMap[s.id] && kibouMap[s.id][off]) continue; // 希望休で確保された休みは移動させない
                 const dow2=new Date(y,m,off).getDay();
                 const r2=rules[dow2];
                 if(r2.maxTotal>0 && countWorkTotal(y,m,off)+1>r2.maxTotal) continue;
@@ -928,7 +936,7 @@ async function generateShift(){
   // 人数不足を、ランダムシフトの休日入れ替えで調整（基本の出勤曜日以外にも出勤させることがある。希望休の日は対象外）
   fixShortages(y,m,dim,kibouMap);
   // 6連勤以上にならないよう、可能な範囲で休みの位置を調整する
-  breakLongRuns(y,m,dim);
+  breakLongRuns(y,m,dim,kibouMap);
   // 休みの位置調整で生じた人数不足を念のためもう一度埋める
   fixShortages(y,m,dim,kibouMap);
   renderShift();
